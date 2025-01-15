@@ -128,9 +128,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
+            CONTAINER_LABEL=sha-${{ github.sha }}
             pypi_username=${{ secrets.ARTIFACTORY_USERNAME }}
             pypi_password=${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
-            commit_sha=${{ github.sha }}
 
       - name: Record Summary
         run: |
