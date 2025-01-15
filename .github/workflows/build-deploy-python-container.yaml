@@ -112,6 +112,7 @@ jobs:
             type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
             type=raw,value=${{ steps.pkg-version.outputs.VERSION }},enable=${{ github.event_name != 'pull_request' }}
             type=sha
+            type=sha,format=long
 
       - name: Build and push
         id: build-push
@@ -127,6 +128,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
+            CONTAINER_LABEL=sha-${{ github.sha }}
             pypi_username=${{ secrets.ARTIFACTORY_USERNAME }}
             pypi_password=${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
 
