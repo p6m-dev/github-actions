@@ -1,0 +1,138 @@
+name: Dev Build & Deploy
+
+on:
+  workflow_call:
+    secrets:
+      ARTIFACTORY_TOKEN:
+        required: true
+      ARTIFACTORY_USERNAME:
+        required: true
+      ARTIFACTORY_IDENTITY_TOKEN:
+        required: true
+      UPDATE_MANIFEST_TOKEN:
+        required: true
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
+    inputs:
+      ARTIFACTORY_REGISTRY:
+        required: true
+        type: string
+      AWS_ACCOUNT_ID:
+        required: false
+        type: string
+      AWS_TFSTATE_BUCKET:
+        required: false
+        type: string
+      AWS_REGION:
+        required: false
+        type: string
+      APPS:
+        required: true
+        type: string
+      DOCKER_REPO:
+        required: true
+        type: string
+      PYTHON_VERSION:
+        default: "3.11"
+        required: false
+        type: string
+
+env:
+  ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+  ARTIFACTORY_IDENTITY_TOKEN: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+  POETRY_HTTP_BASIC_P6M_AI_PLATFORM_PYPI_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+  POETRY_HTTP_BASIC_P6M_AI_PLATFORM_PYPI_PASSWORD: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+  UPDATE_MANIFEST_TOKEN: ${{ secrets.UPDATE_MANIFEST_TOKEN }}
+  ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+  ARTIFACTORY_REGISTRY: ${{ inputs.ARTIFACTORY_REGISTRY }}
+  INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  AWS_DEFAULT_REGION: ${{ inputs.AWS_REGION }}
+  AWS_REGION: ${{ inputs.AWS_REGION }}
+  AWS_DEFAULT_OUTPUT: json
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+jobs:
+  build-and-publish:
+    runs-on: Large_AI_Runner
+    outputs:
+      digest: ${{ steps.build-push.outputs.digest }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+
+      # Required for Multi-arch builds
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      ##########
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ inputs.PYTHON_VERSION }} # Specify your Python version
+      - name: Install Poetry
+        run: |
+          pip install poetry
+      
+      - name: Create lock file
+        run: |
+          poetry lock
+      # - name: Test
+      #   run: |
+      #     poetry run pytest # or any other command to run your tests
+
+      - name: Get Package Version
+        id: pkg-version
+        run: |
+          echo "VERSION=$(poetry version --short)" >> $GITHUB_OUTPUT
+
+      - name: Login to Artifactory Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ inputs.ARTIFACTORY_REGISTRY }}
+          username: ${{ secrets.ARTIFACTORY_USERNAME }}
+          password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ${{ inputs.ARTIFACTORY_REGISTRY }}/${{ inputs.DOCKER_REPO }}/${{ inputs.APPS }}-server
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
+            type=raw,value=${{ steps.pkg-version.outputs.VERSION }},enable=${{ github.event_name != 'pull_request' }}
+            type=sha
+            type=sha,format=long
+
+      - name: Build and push
+        id: build-push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile
+          pull: true
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            CONTAINER_LABEL=sha-${{ github.sha }}
+            pypi_username=${{ secrets.ARTIFACTORY_USERNAME }}
+            pypi_password=${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+
+      - name: Record Summary
+        run: |
+          echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
