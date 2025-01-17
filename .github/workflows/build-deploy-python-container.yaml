@@ -56,7 +56,7 @@ env:
 
 jobs:
   build-and-publish:
-    runs-on: Large_AI_Runner
+    runs-on: ubuntu-latest
     outputs:
       digest: ${{ steps.build-push.outputs.digest }}
     steps:
