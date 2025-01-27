@@ -38,6 +38,10 @@ on:
         default: "3.11"
         required: false
         type: string
+      PLATFORMS:
+        default: "linux/amd64,linux/arm64"
+        required: false
+        type: string
 
 env:
   ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -122,7 +126,7 @@ jobs:
           file: Dockerfile
           pull: true
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ inputs.PLATFORMS }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
