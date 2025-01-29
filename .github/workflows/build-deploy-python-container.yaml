@@ -43,7 +43,7 @@ on:
         required: false
         type: string
       RUNS_ON:
-        default: "Large_AI_Runner"
+        default: "ubuntu-latest"
         required: false
         type: string
 
