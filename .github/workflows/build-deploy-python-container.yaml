@@ -133,8 +133,8 @@ jobs:
           platforms: ${{ inputs.PLATFORMS }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=local,src=/mnt
+          cache-to: type=local,dest=/mnt,mode=max
           build-args: |
             CONTAINER_LABEL=sha-${{ github.sha }}
             pypi_username=${{ secrets.ARTIFACTORY_USERNAME }}
