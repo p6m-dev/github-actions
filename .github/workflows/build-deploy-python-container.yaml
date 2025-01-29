@@ -42,6 +42,10 @@ on:
         default: "linux/amd64,linux/arm64"
         required: false
         type: string
+      RUNS_ON:
+        default: "Large_AI_Runner"
+        required: false
+        type: string
 
 env:
   ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -60,7 +64,7 @@ env:
 
 jobs:
   build-and-publish:
-    runs-on: Large_AI_Runner
+    runs-on: ${{ inputs.RUNS_ON }}
     outputs:
       digest: ${{ steps.build-push.outputs.digest }}
     steps:
