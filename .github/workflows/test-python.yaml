@@ -33,7 +33,7 @@ jobs:
     - name: Install dependencies
       shell: bash
       run: |
-        poetry config http-basic.nax_ai_platform_pypi ${{ secrets.ARTIFACTORY_USERNAME }} ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+        poetry config http-basic.${{ github.repository_owner }}_pypi ${{ secrets.ARTIFACTORY_USERNAME }} ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
         poetry install
 
     - name: Lint with flake8
