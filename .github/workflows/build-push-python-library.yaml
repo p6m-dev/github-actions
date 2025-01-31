@@ -78,6 +78,7 @@ jobs:
         run: |
           poetry --version
           poetry config http-basic.${{ inputs.ORG_NAME }}_${{ inputs.VENTURE_NAME }}_pypi_local  ${{ secrets.ARTIFACTORY_USERNAME }}  ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+          poetry config http-basic.${{ inputs.ORG_NAME }}_${{ inputs.VENTURE_NAME }}_pypi  ${{ secrets.ARTIFACTORY_USERNAME }}  ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
           poetry install --verbose
 
       - name: Git Commit & publish
