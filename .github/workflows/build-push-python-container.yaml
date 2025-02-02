@@ -41,6 +41,9 @@ on:
       ORG_NAME:
         required: true
         type: string
+      DOCKER_REPO:
+        required: true
+        type: string
 
 env:
   ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
