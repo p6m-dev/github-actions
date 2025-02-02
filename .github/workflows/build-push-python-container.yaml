@@ -1,0 +1,165 @@
+name: Pypi Publish
+
+on:
+  workflow_call:
+    secrets:
+      ARTIFACTORY_TOKEN:
+        required: true
+      ARTIFACTORY_USERNAME:
+        required: true
+      ARTIFACTORY_IDENTITY_TOKEN:
+        required: true
+      UPDATE_MANIFEST_TOKEN:
+        required: true
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
+    inputs:
+      ARTIFACTORY_REGISTRY:
+        required: true
+        type: string
+      AWS_ACCOUNT_ID:
+        required: false
+        type: string
+      AWS_TFSTATE_BUCKET:
+        required: false
+        type: string
+      AWS_REGION:
+        required: false
+        type: string
+      APPS:
+        required: true
+        type: string
+      PYTHON_VERSION:
+        default: "3.11"
+        required: false
+        type: string
+      VENTURE_NAME:
+        required: true
+        type: string
+      ORG_NAME:
+        required: true
+        type: string
+
+env:
+  ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+  ARTIFACTORY_IDENTITY_TOKEN: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+  UPDATE_MANIFEST_TOKEN: ${{ secrets.UPDATE_MANIFEST_TOKEN }}
+  ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+  ARTIFACTORY_REGISTRY: ${{ inputs.ARTIFACTORY_REGISTRY }}
+  INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  AWS_DEFAULT_REGION: ${{ inputs.AWS_REGION }}
+  AWS_REGION: ${{ inputs.AWS_REGION }}
+  AWS_DEFAULT_OUTPUT: json
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.pkg-version.outputs.version }}
+      digest: ${{ steps.build-push.outputs.digest }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ inputs.PYTHON_VERSION }} # Specify your Python version
+
+      - name: Install Poetry
+        run: |
+          pip install poetry
+
+      - name: Install dependencies
+        run: |
+          poetry --version
+          poetry config http-basic.${{ inputs.ORG_NAME }}_${{ inputs.VENTURE_NAME }}_pypi_local  ${{ secrets.ARTIFACTORY_USERNAME }}  ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+          poetry config http-basic.${{ inputs.ORG_NAME }}_${{ inputs.VENTURE_NAME }}_pypi  ${{ secrets.ARTIFACTORY_USERNAME }}  ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+          poetry install --verbose
+
+      - name: Git Commit & publish
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          poetry version patch
+          poetry version ${{ github.event.inputs.version }}
+          CODE_VERSION=$(poetry version)
+          echo "DEBUG1 $CODE_VERSION"
+          git add pyproject.toml
+          git commit -m "Bump up version from CI flow to $CODE_VERSION"
+          git push
+          poetry --build publish -r ${{ inputs.ORG_NAME }}_${{ inputs.VENTURE_NAME }}_pypi_push -u ${{ secrets.ARTIFACTORY_USERNAME }} -p ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+        if: "!contains(github.event.head_commit.message, 'Bump up version from CI flow to')"
+
+      - name: Get Package Version
+        id: pkg-version
+        run: |
+          VERSION=$(poetry version --short)
+          echo "Version detected: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Add Version to Summary
+        run: |
+          echo "Published version: ${{ steps.pkg-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Login to Artifactory Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ inputs.ARTIFACTORY_REGISTRY }}
+          username: ${{ secrets.ARTIFACTORY_USERNAME }}
+          password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ${{ inputs.ARTIFACTORY_REGISTRY }}/${{ inputs.DOCKER_REPO }}/${{ inputs.APPS }}-server
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
+            type=raw,value=${{ steps.pkg-version.outputs.VERSION }},enable=${{ github.event_name != 'pull_request' }}
+            type=sha
+            type=sha,format=long
+
+      - name: Build and push
+        id: build-push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile
+          pull: true
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            CONTAINER_LABEL=sha-${{ github.sha }}
+            pypi_username=${{ secrets.ARTIFACTORY_USERNAME }}
+            pypi_password=${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+
+      - name: Record Summary
+        run: |
+          echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Trigger Update Image Digest
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo github.ref= ${{ github.ref }}
+          echo digest = ${{ steps.build-push.outputs.digest }}
+          echo platform_dispatch_url = ${{ vars.PLATFORM_DISPATCH_URL }}
+          curl -X POST \
+            -H "Accept: application/vnd.github.everest-preview+json" \
+            -H "Authorization: token ${{ secrets.UPDATE_MANIFEST_TOKEN }}" \
+            ${{ vars.PLATFORM_DISPATCH_URL }} \
+            --fail-with-body \
+            -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"dev\", \"digest\": \"${{ steps.build-push.outputs.digest }}\"}}"
