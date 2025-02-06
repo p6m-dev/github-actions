@@ -71,6 +71,10 @@ jobs:
           crate: cross
           git: https://github.com/cross-rs/cross
 
+      # A dependency of rust-cross
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Cargo build Release
         env:
           CARGO_INCREMENTAL: "1"
