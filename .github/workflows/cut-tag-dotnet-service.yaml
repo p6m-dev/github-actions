@@ -98,6 +98,9 @@ jobs:
           dotnet build -c Release --no-restore
           dotnet publish -c Release -o ./publish
 
+      - name: Run tests
+        run: dotnet test -c Release --no-build --verbosity normal 
+
       - name: Get TAG version
         id: TAG
         run: |
@@ -115,9 +118,6 @@ jobs:
           git commit -am "[skip ci] Release ${{ steps.TAG.outputs.tag_name }}"
           git tag -a ${{ steps.TAG.outputs.tag_name }} -m "Release ${{ steps.TAG.outputs.value }}"
           git push origin ${{ steps.TAG.outputs.tag_name }}
-
-#      - name: Run tests
-#        run: dotnet test -c Release --no-build --verbosity normal 
 
       - name: Pack and push packages to Artifactory
         run: |
@@ -146,7 +146,7 @@ jobs:
         with:
           context: ${{ inputs.DOCKER_CONTEXT }}
           file: ${{ inputs.DOCKERFILE }}
-          # platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
