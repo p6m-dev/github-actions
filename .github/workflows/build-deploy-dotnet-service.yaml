@@ -100,7 +100,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ${{ inputs.ARTIFACTORY_REGISTRY }}/${{ inputs.ARTIFACTORY_REPO }}/${{ inputs.DOCKER_IMAGE_NAME }}
+            ${{ secrets.ARTIFACTORY_HOSTNAME }}/${{ inputs.ARTIFACTORY_REPO }}/${{ inputs.DOCKER_IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
