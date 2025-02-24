@@ -70,7 +70,7 @@ jobs:
           dotnet-version: 8.0
 
       - name: Add Artifactory NuGet source
-        run: dotnet nuget add source --name "Artifactory" --username "${{ secrets.ARTIFACTORY_USERNAME }}" --password "${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}" --store-password-in-clear-text https://p6m.jfrog.io/artifactory/api/nuget/${{ github.repository_owner }}-nuget
+        run: dotnet nuget add source --name "Artifactory" --username "${{ secrets.ARTIFACTORY_USERNAME }}" --password "${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}" --store-password-in-clear-text https://${{ inputs.ARTIFACTORY_REGISTRY }}/artifactory/api/nuget/${{ github.repository_owner }}-nuget
 
       - name: Login to Docker Repository
         uses: docker/login-action@v3
