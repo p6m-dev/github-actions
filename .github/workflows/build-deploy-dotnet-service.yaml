@@ -7,9 +7,6 @@ on:
         description: "The docker image digest for the built image"
         value: ${{ jobs.build.outputs.digest }}
     secrets:
-      ARTIFACTORY_HOSTNAME:
-        description: The hostname of the Docker registry as you would enter it for the `docker login` command.
-        required: true
       ARTIFACTORY_USERNAME:
         description: The username to use to authenticate with the Docker registry.
         required: true
@@ -26,6 +23,10 @@ on:
         type: string
         required: false
         default: release
+      ARTIFACTORY_HOSTNAME:
+        description: The hostname of the Docker registry as you would enter it for the `docker login` command.
+        type: string
+        required: true
       ARTIFACTORY_REPO:
         description: Artifactory repository name.
         type: string
@@ -69,12 +70,12 @@ jobs:
           dotnet-version: 8.0
 
       - name: Add Artifactory NuGet source
-        run: dotnet nuget add source --name "Artifactory" --username "${{ secrets.ARTIFACTORY_USERNAME }}" --password "${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}" --store-password-in-clear-text https://${{ secrets.ARTIFACTORY_HOSTNAME }}/artifactory/api/nuget/${{ github.repository_owner }}-nuget
+        run: dotnet nuget add source --name "Artifactory" --username "${{ secrets.ARTIFACTORY_USERNAME }}" --password "${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}" --store-password-in-clear-text https://${{ inputs.ARTIFACTORY_HOSTNAME }}/artifactory/api/nuget/${{ github.repository_owner }}-nuget
 
       - name: Login to Docker Repository
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.ARTIFACTORY_HOSTNAME }}
+          registry: ${{ inputs.ARTIFACTORY_HOSTNAME }}
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
 
@@ -100,7 +101,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ${{ secrets.ARTIFACTORY_HOSTNAME }}/${{ inputs.ARTIFACTORY_REPO }}/${{ inputs.DOCKER_IMAGE_NAME }}
+            ${{ inputs.ARTIFACTORY_HOSTNAME }}/${{ inputs.ARTIFACTORY_REPO }}/${{ inputs.DOCKER_IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
