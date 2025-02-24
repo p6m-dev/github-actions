@@ -8,6 +8,11 @@ on:
       ARTIFACTORY_IDENTITY_TOKEN:
         required: true
     inputs:
+      ARTIFACTORY_HOSTNAME:
+        description: The hostname of the Docker registry as you would enter it for the `docker login` command.
+        type: string
+        required: false
+        default: p6m.jfrog.io
       WORKING_DIRECTORY:
         required: false
         type: string
@@ -32,13 +37,13 @@ jobs:
               {
                 "id": "central",
                 "name":  "${{ github.repository_owner }}-libs-release",
-                "url": "https://p6m.jfrog.io/artifactory/${{ github.repository_owner }}-libs-release",
+                "url": "https://${{ input.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-release",
                 "snapshots": { "enabled": "false" }
               },
               {
                 "id": "snapshots",
                 "name":  "${{ github.repository_owner }}-libs-snapshot",
-                "url": "https://p6m.jfrog.io/artifactory/${{ github.repository_owner }}-libs-snapshot",
+                "url": "https://${{ input.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-snapshot",
                 "snapshots": { "enabled": "true" }
               }
             ]
@@ -47,13 +52,13 @@ jobs:
               {
                 "id": "central",
                 "name":  "${{ github.repository_owner }}-libs-release",
-                "url": "https://p6m.jfrog.io/artifactory/${{ github.repository_owner }}-libs-release",
+                "url": "https://${{ input.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-release",
                 "snapshots": { "enabled": "false" }
               },
               {
                 "id": "snapshots",
                 "name":  "${{ github.repository_owner }}-libs-snapshot",
-                "url": "https://p6m.jfrog.io/artifactory/${{ github.repository_owner }}-libs-snapshot",
+                "url": "https://${{ input.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-snapshot",
                 "snapshots": { "enabled": "true" }
               }
             ]

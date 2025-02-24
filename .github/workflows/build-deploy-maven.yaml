@@ -7,6 +7,12 @@ on:
         required: true
       UPDATE_MANIFEST_TOKEN:
         required: true
+    inputs:
+      ARTIFACTORY_HOSTNAME:
+        description: The hostname of the Docker registry as you would enter it for the `docker login` command.
+        type: string
+        required: false
+        default: p6m.jfrog.io
     outputs:
       digest:
         description: "The docker image digest for the built image"
@@ -35,14 +41,14 @@ jobs:
               {
                 "id": "central",
                 "name":  "${{ github.repository_owner }}-libs-release",
-                "url": "https://p6m.jfrog.io/artifactory/${{ github.repository_owner }}-libs-release",
+                "url": "https://${{ input.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-release",
                 "snapshots": { "enabled": "false" },
                 "releases": { "enabled": "true" }
               },
               {
                 "id": "snapshots",
                 "name":  "${{ github.repository_owner }}-libs-snapshot",
-                "url": "https://p6m.jfrog.io/artifactory/${{ github.repository_owner }}-libs-snapshot",
+                "url": "https://${{ input.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-snapshot",
                 "snapshots": { "enabled": "true" },
                 "releases": { "enabled": "false" }
               }
@@ -52,14 +58,14 @@ jobs:
               {
                 "id": "central",
                 "name":  "${{ github.repository_owner }}-libs-release",
-                "url": "https://p6m.jfrog.io/artifactory/${{ github.repository_owner }}-libs-release",
+                "url": "https://${{ input.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-release",
                 "snapshots": { "enabled": "false" },
                 "releases": { "enabled": "true" }
               },
               {
                 "id": "snapshots",
                 "name":  "${{ github.repository_owner }}-libs-snapshot",
-                "url": "https://p6m.jfrog.io/artifactory/${{ github.repository_owner }}-libs-snapshot",
+                "url": "https://${{ input.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-snapshot",
                 "snapshots": { "enabled": "true" },
                 "releases": { "enabled": "false" }
               }
@@ -76,7 +82,7 @@ jobs:
       - name: Login to Artifactory Container Registry
         uses: docker/login-action@v2
         with:
-          registry: p6m.jfrog.io
+          registry: ${{ input.ARTIFACTORY_HOSTNAME }}
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
 

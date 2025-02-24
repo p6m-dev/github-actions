@@ -1,6 +1,11 @@
 on:
   workflow_call:
     inputs:
+      ARTIFACTORY_HOSTNAME:
+        description: The hostname of the Docker registry as you would enter it for the `docker login` command.
+        type: string
+        required: false
+        default: p6m.jfrog.io
       context:
         type: string
         description: "The context for docker build"
@@ -47,7 +52,7 @@ jobs:
       - name: Login to Artifactory Container Registry
         uses: docker/login-action@v2
         with:
-          registry: naxgrp.jfrog.io
+          registry: ${{ inputs.ARTIFACTORY_HOSTNAME}}
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
 
@@ -83,7 +88,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            naxgrp.jfrog.io/${{ vars.TF_VAR_JV_PROJECT }}-${{ vars.TF_VAR_JV_NAME }}-docker-local/applications/${{ github.event.repository.name }}-server
+            ${{ inputs.ARTIFACTORY_HOSTNAME}}/${{ github.repository_owner }}-docker-local/applications/${{ github.event.repository.name }}-server
           tags: |
             type=raw,value=${{ steps.TAG.outputs.tag_name }}
             type=ref,event=branch
