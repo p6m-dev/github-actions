@@ -84,7 +84,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2.7.3
+        uses: Swatinem/rust-cache@v2
         with:
           shared-key: build
 
@@ -155,7 +155,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2.7.3
+        uses: Swatinem/rust-cache@v2
         with:
           shared-key: build
 
