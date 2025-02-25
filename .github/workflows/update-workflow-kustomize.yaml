@@ -2,12 +2,18 @@ name: Update Image Digest
 
 on:
   workflow_call:
+    inputs:
+      ARTIFACTORY_HOSTNAME:
+        description: The hostname of the Docker registry as you would enter it for the `docker login` command.
+        type: string
+        required: false
 
 permissions:
   contents: write
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.ARTIFACTORY_HOSTNAME }}
 
 jobs:
   update-image-digest:
@@ -41,7 +47,7 @@ jobs:
             - https://github.com/${{github.repository_owner}}/workflow-templates/.platform/kubernetes/${{ github.event.client_payload.environment_dir }}
           EndOfMessage
           fi
-          kustomize edit set image ${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server=p6m.jfrog.io/${{github.repository_owner}}-docker-local/applications/${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server@${{ github.event.client_payload.digest }}
+          kustomize edit set image ${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server=${{ env.ARTIFACTORY_HOSTNAME }}/${{github.repository_owner}}-docker-local/applications/${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server@${{ github.event.client_payload.digest }}
           git add .
       - name: Commit Changes
         timeout-minutes: 1

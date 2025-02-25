@@ -10,11 +10,13 @@ on:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
         type: string
         required: false
-        default: p6m.jfrog.io
     outputs:
       tag_name:
         description: "Git Tag Name"
         value: ${{ jobs.tag_version.outputs.tag_name }}
+
+env:
+  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.ARTIFACTORY_HOSTNAME }}
 
 jobs:
   tag_version:
@@ -39,13 +41,13 @@ jobs:
               {
                 "id": "central",
                 "name":  "${{ github.repository_owner }}-libs-release",
-                "url": "https://${{ inputs.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-release",
+                "url": "https://${{ env.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-release",
                 "snapshots": { "enabled": "false" }
               },
               {
                 "id": "snapshots",
                 "name":  "${{ github.repository_owner }}-libs-snapshot",
-                "url": "https://${{ inputs.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-snapshot",
+                "url": "https://${{ env.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-snapshot",
                 "snapshots": { "enabled": "true" }
               }
             ]
@@ -54,13 +56,13 @@ jobs:
               {
                 "id": "central",
                 "name":  "${{ github.repository_owner }}-libs-release",
-                "url": "https://${{ inputs.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-release",
+                "url": "https://${{ env.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-release",
                 "snapshots": { "enabled": "false" }
               },
               {
                 "id": "snapshots",
                 "name":  "${{ github.repository_owner }}-libs-snapshot",
-                "url": "https://${{ inputs.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-snapshot",
+                "url": "https://${{ env.ARTIFACTORY_HOSTNAME }}/artifactory/${{ github.repository_owner }}-libs-snapshot",
                 "snapshots": { "enabled": "true" }
               }
             ]

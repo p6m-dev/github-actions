@@ -40,7 +40,7 @@ env:
   ARTIFACTORY_IDENTITY_TOKEN: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
   UPDATE_MANIFEST_TOKEN: ${{ secrets.UPDATE_MANIFEST_TOKEN }}
   ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
-  ARTIFACTORY_REGISTRY: ${{ inputs.ARTIFACTORY_REGISTRY }}
+  ARTIFACTORY_REGISTRY: ${{ inputs.ARTIFACTORY_REGISTRY || vars.ARTIFACTORY_HOSTNAME}}
   INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   AWS_DEFAULT_REGION: ${{ inputs.AWS_REGION }}
   AWS_REGION: ${{ inputs.AWS_REGION }}
@@ -70,7 +70,7 @@ jobs:
       - name: Login to Artifactory Container Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ inputs.ARTIFACTORY_REGISTRY }}
+          registry: ${{ env.ARTIFACTORY_REGISTRY }}
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
 
@@ -79,7 +79,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ${{ inputs.ARTIFACTORY_REGISTRY }}/${{ inputs.DOCKER_REPO }}/${{ inputs.APPS }}-server
+            ${{ env.ARTIFACTORY_REGISTRY }}/${{ inputs.DOCKER_REPO }}/${{ inputs.APPS }}-server
           tags: |
             type=ref,event=branch
             type=ref,event=pr

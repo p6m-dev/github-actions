@@ -13,6 +13,10 @@ on:
         required: false
         type: boolean
         default: false
+      ARTIFACTORY_HOSTNAME:
+        description: The hostname of the Docker registry as you would enter it for the `docker login` command.
+        type: string
+        required: false
     secrets:
       ARTIFACTORY_USERNAME:
         description: 'Artifactory Username'
@@ -23,6 +27,9 @@ on:
 
 permissions:
   contents: write
+
+env:
+  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.ARTIFACTORY_HOSTNAME }}
 
 jobs:
   build:
@@ -40,7 +47,7 @@ jobs:
       - name: Login to Artifactory Docker Repository
         uses: docker/login-action@v2
         with:
-          registry: p6m.jfrog.io
+          registry: ${{ env.ARTIFACTORY_HOSTNAME}}
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
 
@@ -55,7 +62,7 @@ jobs:
 
       - name: Helm Push
         if: ${{ inputs.deploy }}
-        run: helm push ${{ github.event.repository.name }}-${{ steps.current_version.outputs.version }}.tgz  oci://p6m.jfrog.io/${{ inputs.namespace }}-docker
+        run: helm push ${{ github.event.repository.name }}-${{ steps.current_version.outputs.version }}.tgz  oci://${{ env.ARTIFACTORY_HOSTNAME}}/${{ inputs.namespace }}-docker
 
       - name: Automated Version Bump
         run: |

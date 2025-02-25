@@ -28,7 +28,7 @@ on:
         required: false
         type: string
       ARTIFACTORY_REGISTRY:
-        required: true
+        required: false
         type: string
       AWS_ACCOUNT_ID:
         required: false
@@ -46,7 +46,7 @@ env:
   UPDATE_MANIFEST_TOKEN: ${{ secrets.UPDATE_MANIFEST_TOKEN }}
   ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
   REACT_APP_ENV: ${{ inputs.REACT_APP_ENV }}
-  ARTIFACTORY_REGISTRY: ${{ inputs.ARTIFACTORY_REGISTRY }}
+  ARTIFACTORY_REGISTRY: ${{ inputs.ARTIFACTORY_REGISTRY || vars.ARTIFACTORY_HOSTNAME}}
   CONTENTFUL_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN || '' }}
   CONTENTFUL_PREVIEW_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_PREVIEW_ACCESS_TOKEN || '' }}
   CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID || '' }}
@@ -118,7 +118,7 @@ jobs:
       - name: Login to Artifactory Container Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ inputs.ARTIFACTORY_REGISTRY }}
+          registry: ${{ env.ARTIFACTORY_REGISTRY }}
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
 
