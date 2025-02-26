@@ -29,7 +29,7 @@ on:
       ARTIFACTORY_HOSTNAME:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
         type: string
-        required: true
+        required: false
       ARTIFACTORY_REPO:
         description: Artifactory repository name.
         type: string
