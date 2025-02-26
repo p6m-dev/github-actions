@@ -40,7 +40,7 @@ jobs:
           APP=${{ steps.get_release.outputs.app }}
           curl -X POST \
             -H "Accept: application/vnd.github.everest-preview+json" \
-            -H "Authorization: token ${{ secrets.TOKEN }}" \
+            -H "Authorization: token ${{ secrets.UPDATE_MANIFEST_TOKEN }}" \
             ${{ vars.PLATFORM_DISPATCH_URL }} \
             --fail-with-body \
             -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"tag\": \"${{ inputs.tag }}\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"${{ inputs.target-env }}\", \"digest\": \"${{ steps.get_release.outputs.digest }}\"}}"
