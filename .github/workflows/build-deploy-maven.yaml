@@ -109,7 +109,7 @@ jobs:
         id: mvn_build
         run: |
           mkdir artifacts
-          mvn -B deploy -Pdocker-deploy -Djib.from.image=p6m.jfrog.io/p6m-dev-docker/amazoncorretto:17-alpine3.17 -Djib.from.platforms=linux/amd64,linux/arm64 -Dmaven-jib-plugin.version=3.4.1
+          mvn -B deploy -Pdocker-deploy -Djib.from.image=ybor/amazoncorretto:17-alpine3.17 -Djib.from.platforms=linux/amd64,linux/arm64 -Dmaven-jib-plugin.version=3.4.1
           mvn $MAVEN_CLI_OPTS org.apache.maven.plugins:maven-help-plugin:3.1.1:evaluate -Dexpression=project.version -q -DforceStdout > artifacts/version
           echo $(basename ${GITHUB_REPOSITORY})
           cat $(basename ${GITHUB_REPOSITORY})-server/target/jib-image.digest

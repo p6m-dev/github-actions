@@ -111,7 +111,7 @@ jobs:
       - name: Maven Build - Tag
         id: mvn_build
         run: |
-          mvn -B deploy -Pdocker-deploy -Djib.from.image=p6m.jfrog.io/p6m-dev-docker/amazoncorretto:17-alpine3.17 -Djib.from.platforms=linux/amd64,linux/arm64 -Dmaven-jib-plugin.version=3.4.1
+          mvn -B deploy -Pdocker-deploy -Djib.from.image=ybor/amazoncorretto:17-alpine3.17 -Djib.from.platforms=linux/amd64,linux/arm64 -Dmaven-jib-plugin.version=3.4.1
           cat $(basename ${GITHUB_REPOSITORY})-server/target/jib-image.digest
           echo "digest=$(cat $(basename ${GITHUB_REPOSITORY})-server/target/jib-image.digest)" >> $GITHUB_OUTPUT
 
@@ -129,7 +129,7 @@ jobs:
       - name: Maven Build - Snapshot
         id: mvn_build_snapshot
         run: |
-          mvn -B deploy -Pdocker-deploy -Djib.from.image=p6m.jfrog.io/p6m-dev-docker/p6m/amazoncorretto:17-alpine3.17 -Djib.from.platforms=linux/amd64,linux/arm64 -Dmaven-jib-plugin.version=3.4.1
+          mvn -B deploy -Pdocker-deploy -Djib.from.image=ybor/amazoncorretto:17-alpine3.17 -Djib.from.platforms=linux/amd64,linux/arm64 -Dmaven-jib-plugin.version=3.4.1
           cat $(basename ${GITHUB_REPOSITORY})-server/target/jib-image.digest
           echo "digest=$(cat $(basename ${GITHUB_REPOSITORY})-server/target/jib-image.digest)" >> $GITHUB_OUTPUT
 
