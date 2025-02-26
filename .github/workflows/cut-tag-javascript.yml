@@ -1,55 +1,62 @@
 on:
   workflow_call:
-    inputs:
-      ARTIFACTORY_HOSTNAME:
-        description: The hostname of the Docker registry as you would enter it for the `docker login` command.
-        type: string
-        required: false
-      context:
-        type: string
-        description: "The context for docker build"
-        default: "."
-      dockerfile:
-        type: string
-        description: "The absolute path to the DockerFile"
-        default: "Dockerfile"
     secrets:
+      ARTIFACTORY_TOKEN:
+        required: true
       ARTIFACTORY_USERNAME:
         required: true
       ARTIFACTORY_IDENTITY_TOKEN:
         required: true
+      UPDATE_MANIFEST_TOKEN:
+        required: true
+      CONTENTFUL_ACCESS_TOKEN:
+        required: false
+      CONTENTFUL_PREVIEW_ACCESS_TOKEN:
+        required: false
+      CONTENTFUL_SPACE_ID:
+        required: false
+      CONTENTFUL_ENVIRONMENT_ID:
+        required: false
+    inputs:
+      NX_APP:
+        type: string
+        required: true
+      ARTIFACTORY_REGISTRY:
+        required: false
+        type: string
     outputs:
-      digest:
-        description: "The docker image digest for the built image"
-        value: ${{ jobs.tag_version.outputs.digest }}
       tag_name:
         description: "Git Tag Name"
         value: ${{ jobs.tag_version.outputs.tag_name }}
 
+permissions:
+  contents: write
+
 env:
-  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.ARTIFACTORY_HOSTNAME }}
+  NX_APP: ${{ inputs.NX_APP }}
+  ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+  ARTIFACTORY_IDENTITY_TOKEN: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+  UPDATE_MANIFEST_TOKEN: ${{ secrets.UPDATE_MANIFEST_TOKEN }}
+  ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+  CONTENTFUL_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN || '' }}
+  CONTENTFUL_PREVIEW_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_PREVIEW_ACCESS_TOKEN || '' }}
+  CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID || '' }}
+  CONTENTFUL_ENVIRONMENT_ID: ${{ secrets.CONTENTFUL_ENVIRONMENT_ID || '' }}
+  INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  NODE_OPTIONS: "--max_old_space_size=4096"
+  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_REGISTRY || vars.ARTIFACTORY_HOSTNAME }}
 
 jobs:
   tag_version:
     name: Create Tag & Build
     runs-on: ubuntu-latest
     outputs:
-      tag_name: ${{ steps.TAG.outputs.tag_name }}
-      tag_value: ${{ steps.TAG.outputs.value }}
-      digest: ${{ steps.build-push.outputs.digest }}
+      tag_name: ${{ steps.TAG.outputs.code_version }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      # Required for Multi-arch builds
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      ##########
 
       - name: Login to Artifactory Container Registry
         uses: docker/login-action@v2
@@ -57,75 +64,84 @@ jobs:
           registry: ${{ env.ARTIFACTORY_HOSTNAME}}
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
-
-      - name: Setup Node
+      
+      - name: Setup NodeJS
         uses: actions/setup-node@v3
         with:
           node-version: 18
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
 
-      - name: Install Semver
-        run: npm install -g semver
+      - name: Get pnpm cache directory path
+        id: pnpm-cache-dir-path
+        run: echo "::set-output name=dir::$(pnpm config get cacheFolder)"
+      
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v3
+        id: pnpm-cache
+        with:
+          path: |
+            ${{ steps.pnpm-cache-dir-path.outputs.dir }}
+            **\node_modules
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
 
+      - name: Install dependencies
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        run: pnpm install
+      
       - name: Get Tag Version
         id: TAG
         run: |
-          version=$(semver -i patch $(git tag | grep -E 'v*$' | sort -t "." -k1,1n -k2,2n -k3,3n | tail -n1) || echo "1.0.0")
-          echo "value=$version"
-          echo "value=$version" >> $GITHUB_OUTPUT
-          echo "tag_name=v$version"
-          echo "tag_name=v$version" >> $GITHUB_OUTPUT
-
-      - name: Git Commit & Tag
+          cd apps/$NX_APP && app_version=$(npm version minor --no-git-tag-version --no-push) && cd ../..
+          npm version minor --no-git-tag-version --no-push
+          echo "${{ inputs.NX_APP }}: $app_version"
+          echo "Code version: ${{ inputs.NX_APP }}_$app_version"
+          echo "app_version=$app_version" >> $GITHUB_OUTPUT
+          echo "code_version=${{ inputs.NX_APP }}_$app_version" >> $GITHUB_OUTPUT
+          
+      - name: Push changes
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add .
-          git commit --allow-empty -am "Set version to ${{ steps.TAG.outputs.tag_name }}"
-          git tag -a ${{ steps.TAG.outputs.tag_name }} -m "Release ${{ steps.TAG.outputs.value }}"
-          git push origin ${{ steps.TAG.outputs.tag_name }}
-          git push origin main
+          git fetch
+          git config user.email github-actions
+          git config user.name github-actions@github.com
+          git add --all
+          git commit -m "Release version ${{ steps.TAG.outputs.code_version }}"
+          git push
 
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            ${{ env.ARTIFACTORY_HOSTNAME}}/${{ github.repository_owner }}-docker-local/applications/${{ github.event.repository.name }}-server
-          tags: |
-            type=raw,value=${{ steps.TAG.outputs.tag_name }}
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}} 
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha
-
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        id: build-push
-        with:
-          context: ${{ inputs.context }}
-          file: ${{ inputs.dockerfile }}
-          platforms: linux/amd64 # ,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-
-      - name: Record Summary
+      - name: Tag release
         run: |
-          echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          git tag -a ${{ steps.TAG.outputs.code_version }} -m "tag release ${{ steps.TAG.outputs.code_version }}"
+          git push --follow-tags
 
-      - name: Prepare Artifact
+      - name: Build apps
         run: |
-          echo "${{ steps.build-push.outputs.digest }}" >> digest.txt
+          pnpm nx build $NX_APP
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push docker image
+        id: build_image
+        env:
+          INPUT_PLATFORMS: linux/amd64,linux/arm64
+        run: |
+          pnpm nx deploy $NX_APP
+          echo "$(cat .nx-container/$NX_APP/digest)" >> digest.txt
+          echo $NX_APP >> app.txt
+          echo "digest=$(cat .nx-container/$NX_APP/digest)" >> $GITHUB_OUTPUT
 
       - uses: ncipollo/release-action@v1.12.0
         with:
-          name: Version ${{ steps.TAG.outputs.value }}
-          tag: ${{ steps.TAG.outputs.tag_name }}
+          name: "${{ steps.TAG.outputs.code_version }}"
+          tag: ${{ steps.TAG.outputs.code_version }}
           makeLatest: true
-          artifacts: "digest.txt"
+          artifacts: "digest.txt,app.txt"
           removeArtifacts: true
           generateReleaseNotes: true
           body: |
-            Docker Digest: `${{ steps.build-push.outputs.digest }}`
-            Docker Tags: `${{ steps.meta.outputs.tags }}`
+            App: `${{ inputs.NX_APP }}`
+            Docker Digest: `${{ steps.build_image.outputs.digest }}`
