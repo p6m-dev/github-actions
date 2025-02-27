@@ -126,9 +126,9 @@ jobs:
 
       - name: Record Summary
         run: |
-          echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY  
- 
+          echo "### Docker Image Digest" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+       
   trigger-cd:
     name: Trigger CD
     if: github.ref_name == 'main'
