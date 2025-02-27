@@ -127,7 +127,7 @@ jobs:
       - name: Record Summary
         run: |
           echo "### Docker Image Digest" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.docker_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
        
   trigger-cd:
     name: Trigger CD
