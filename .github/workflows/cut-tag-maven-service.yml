@@ -149,7 +149,7 @@ jobs:
           echo "### Docker Image Digest" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.mvn_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
           echo "### Release Version" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.mvn_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.TAG.outputs.value }}" >> $GITHUB_STEP_SUMMARY
           echo "### Next Snapshot Version" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.SNAPSHOT.outputs.value }}" >> $GITHUB_STEP_SUMMARY
 
