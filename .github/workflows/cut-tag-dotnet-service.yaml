@@ -193,6 +193,14 @@ jobs:
 
       - name: Record Summary
         run: |
+          echo "### Tag Name" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.TAG.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Image Digest" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.docker_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Release Version" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.TAG.outputs.release_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Version" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.increment_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
           echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY  
 
