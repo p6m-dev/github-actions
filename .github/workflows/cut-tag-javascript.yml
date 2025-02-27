@@ -140,6 +140,10 @@ jobs:
           echo "${{ steps.TAG.outputs.code_version }}" >> $GITHUB_STEP_SUMMARY
           echo "### Docker Image Digest" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.build_image.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Application Name" >> $GITHUB_STEP_SUMMARY
+          echo "$NX_APP" >> $GITHUB_STEP_SUMMARY
+          echo "### Application Version" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.TAG.outputs.app_version }}" >> $GITHUB_STEP_SUMMARY
 
       - uses: ncipollo/release-action@v1.12.0
         with:
