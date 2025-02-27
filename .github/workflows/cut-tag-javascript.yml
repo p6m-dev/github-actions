@@ -134,6 +134,13 @@ jobs:
           echo $NX_APP >> app.txt
           echo "digest=$(cat .nx-container/$NX_APP/digest)" >> $GITHUB_OUTPUT
 
+      - name: Record Summary
+        run: |
+          echo "### Tag Name" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.TAG.outputs.code_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Image Digest" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.build_image.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+
       - uses: ncipollo/release-action@v1.12.0
         with:
           name: "${{ steps.TAG.outputs.code_version }}"
