@@ -130,9 +130,9 @@ jobs:
           INPUT_PLATFORMS: linux/amd64,linux/arm64
         run: |
           pnpm nx deploy $NX_APP
-          echo "$(cat ./node_modules/.cache/nx-container/$APP/digest)" >> digest.txt
+          echo "$(cat ./node_modules/.cache/nx-container/$NX_APP/digest)" >> digest.txt
           echo $NX_APP >> app.txt
-          echo "digest=$(cat ./node_modules/.cache/nx-container/$APP/digest)" >> $GITHUB_OUTPUT
+          echo "digest=$(cat ./node_modules/.cache/nx-container/$NX_APP/digest)" >> $GITHUB_OUTPUT
 
       - name: Record Summary
         run: |
