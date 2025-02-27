@@ -144,10 +144,14 @@ jobs:
 
       - name: Record Summary
         run: |
-          echo "### Tagged Version" >> $GITHUB_STEP_SUMMARY
+          echo "### Tag Name" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.TAG.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Image Digest" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.mvn_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Snapshot" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.mvn_build_snapshot.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Release Version" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.mvn_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Snapshot Version" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.SNAPSHOT.outputs.value }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Prepare Artifact
         run: |
