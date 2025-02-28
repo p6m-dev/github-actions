@@ -208,13 +208,13 @@ jobs:
 
       - uses: ncipollo/release-action@v1.12.0
         with:
-          name: Version ${{ steps.TAG.outputs.release_version }}
+          name: ${{ steps.TAG.outputs.tag_name }}
           tag: ${{ steps.TAG.outputs.tag_name }}
           makeLatest: true
           artifacts: "digest.txt"
           removeArtifacts: true
           generateReleaseNotes: true
           body: |
-            Maven version: `${{ steps.TAG.outputs.release_version }}`
-            Docker image digest: `${{ steps.TAG.outputs.release_version }}`
+            Release Version: `${{ steps.TAG.outputs.release_version }}`
+            Docker image digest: `${{ steps.docker_build.outputs.digest }}`
   
