@@ -17,6 +17,7 @@ on:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
         type: string
         required: false
+        default: p6m.jfrog.io
     secrets:
       ARTIFACTORY_USERNAME:
         description: 'Artifactory Username'
