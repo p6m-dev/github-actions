@@ -92,8 +92,7 @@ jobs:
           git add .
           git commit -am "Set version to ${{ steps.TAG.outputs.tag_name }}"
           git tag -a ${{ steps.TAG.outputs.tag_name }} -m "Release ${{ steps.TAG.outputs.value }}"
-          git push origin ${{ steps.TAG.outputs.tag_name }}
-          git push origin ${{ github.ref_name }}
+          git push origin ${{ steps.TAG.outputs.tag_name }}        
 
       - name: Maven Build - Tag
         run: mvn -B install deploy
