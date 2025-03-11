@@ -98,8 +98,7 @@ jobs:
 
       - name: Test
         run: |
-          RUN=CI pnpm nx affected:test --base=origin/main~1 --parallel 5 --coverage
-          pnpm nx affected:lint --base=origin/main~1 --parallel 5
+          pnpm nx run-many --target=lint --all --parallel=5
       
       - name: Archive code coverage results
         uses: actions/upload-artifact@v4
@@ -109,7 +108,7 @@ jobs:
 
       - name: Build
         run: |
-          pnpm nx affected:build --base=origin/main~1 --parallel 5 --prod 
+          pnpm nx run-many --target=build --all --parallel=5 --prod --exclude docs
 
       - name: Set up Docker Buildx
         id: buildx
@@ -124,7 +123,7 @@ jobs:
 
       - name: Affected apps
         run: |
-          APPS=$(pnpm nx show projects --affected --type app --exclude docs --base=origin/main~1 | cut -d, -f1)
+          APPS=$(pnpm nx show projects --type app --exclude docs | cut -d, -f1)
           echo "Affected applications: $APPS"
           echo "AFFECTED_APPS=$(echo $APPS)" >> $GITHUB_ENV
 
