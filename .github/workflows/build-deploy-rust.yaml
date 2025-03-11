@@ -125,8 +125,8 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
-            type=raw,value=${{ needs.build.outputs.VERSION }},enable=${{ github.event_name != 'pull_request' }}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ needs.build.outputs.VERSION }},enable={{is_default_branch}}
             type=sha
 
       - name: Build and push
@@ -150,7 +150,7 @@ jobs:
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
 
   bump-version:
-    if: ${{ inputs.DO_VERSION_BUMP && github.event_name != 'pull_request' }}
+    if: ${{ inputs.DO_VERSION_BUMP && github.ref_name == 'main' }}
     runs-on: ubuntu-latest
     needs:
       - build
