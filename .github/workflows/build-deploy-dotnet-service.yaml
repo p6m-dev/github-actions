@@ -94,7 +94,7 @@ jobs:
         run: |
           dotnet pack --configuration Release -o ./artifacts --version-suffix ${{ github.run_number }}
           for package in ./artifacts/*.nupkg; do
-            dotnet nuget push "$package" --source "Artifactory" --api-key "${{ secrets.ARTIFACTORY_USERNAME }}:${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}"
+            dotnet nuget push "$package" --source "${{ github.repository_owner }}-nuget" --api-key "${{ secrets.ARTIFACTORY_USERNAME }}:${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}"
           done
       
       - name: Docker meta
