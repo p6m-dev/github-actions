@@ -12,8 +12,12 @@ on:
       DOCKER_PASSWORD:
         description: The password to use to authenticate with the Docker registry.
         required: true
-      CARGO_TOKEN:
-        description: The token to use for authenticating with the private cargo registry.
+      CARGO_TOKENS:
+        description: >-
+          Registry tokens in key=value format (one per line).
+          Example:
+            crates-io=token1
+            my-registry=token2
         required: false
     inputs:
       MODE:
@@ -21,11 +25,6 @@ on:
         type: string
         required: false
         default: release
-      CARGO_REGISTRY_ALIAS:
-        description: The alias of the Cargo registry to authenticate with as specified in the .cargo/config file of the repo.
-        type: string
-        required: false
-        default: 'crates-io'
       DOCKER_REGISTRY:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
         type: string
@@ -85,15 +84,26 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Cargo Registry Login
-        if: inputs.CARGO_REGISTRY_ALIAS != ''
         run: |
-          if [ -n "${{ secrets.CARGO_TOKEN }}" ]; then
-            cargo login --registry ${{ inputs.CARGO_REGISTRY_ALIAS }} 'Bearer ${{ secrets.CARGO_TOKEN }}'
+          if [ -n "${{ secrets.CARGO_TOKENS }}" ]; then
             mkdir -p ~/.cargo
-            cat >> ~/.cargo/config.toml <<CONFIG
-            [registry]
-            global-credential-providers = ["cargo:token"]
-            CONFIG
+            
+            # Set up global credential providers
+            echo '[registry]' > ~/.cargo/config.toml
+            echo 'global-credential-providers = ["cargo:token"]' >> ~/.cargo/config.toml
+            
+            # Write credentials for each registry
+            echo '${{ secrets.CARGO_TOKENS }}' | while IFS='=' read -r registry token; do
+              if [ -n "$registry" ] && [ -n "$token" ]; then
+                if [ "$registry" = "crates-io" ]; then
+                  echo "[registry]" >> ~/.cargo/credentials.toml
+                else
+                  echo "[registries.$registry]" >> ~/.cargo/credentials.toml
+                fi
+                echo "token = \"Bearer $token\"" >> ~/.cargo/credentials.toml
+                echo "" >> ~/.cargo/credentials.toml
+              fi
+            done
           fi
 
       - name: Cargo build Release
