@@ -12,12 +12,20 @@ on:
       DOCKER_PASSWORD:
         description: The password to use to authenticate with the Docker registry.
         required: true
+      CARGO_TOKEN:
+        description: The token to use for authenticating with the private cargo registry.
+        required: false
     inputs:
       MODE:
         description: Release or Debug mode
         type: string
         required: false
         default: release
+      CARGO_REGISTRY_ALIAS:
+        description: The alias of the Cargo registry to authenticate with as specified in the .cargo/config file of the repo.
+        type: string
+        required: false
+        default: 'crates-io'
       DOCKER_REGISTRY:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
         type: string
@@ -75,6 +83,18 @@ jobs:
       # A dependency of rust-cross
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Cargo Registry Login
+        if: inputs.CARGO_REGISTRY_ALIAS != ''
+        run: |
+          if [ -n "${{ secrets.CARGO_TOKEN }}" ]; then
+            cargo login --registry ${{ inputs.CARGO_REGISTRY_ALIAS }} 'Bearer ${{ secrets.CARGO_TOKEN }}'
+            mkdir -p ~/.cargo
+            cat >> ~/.cargo/config.toml <<CONFIG
+            [registry]
+            global-credential-providers = ["cargo:token"]
+            CONFIG
+          fi
 
       - name: Cargo build Release
         run: |
