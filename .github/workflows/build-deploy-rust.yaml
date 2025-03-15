@@ -86,22 +86,13 @@ jobs:
       - name: Cargo Registry Login
         run: |
           if [ -n "${{ secrets.CARGO_TOKENS }}" ]; then
-            mkdir -p ~/.cargo
-            
-            # Set up global credential providers
-            echo '[registry]' > ~/.cargo/config.toml
-            echo 'global-credential-providers = ["cargo:token"]' >> ~/.cargo/config.toml
-            
-            # Write credentials for each registry
             echo '${{ secrets.CARGO_TOKENS }}' | while IFS='=' read -r registry token; do
               if [ -n "$registry" ] && [ -n "$token" ]; then
                 if [ "$registry" = "crates-io" ]; then
-                  echo "[registry]" >> ~/.cargo/credentials.toml
+                  cargo login "$token"
                 else
-                  echo "[registries.$registry]" >> ~/.cargo/credentials.toml
+                  cargo login --registry "$registry" "$token"
                 fi
-                echo "token = \"Bearer $token\"" >> ~/.cargo/credentials.toml
-                echo "" >> ~/.cargo/credentials.toml
               fi
             done
           fi
