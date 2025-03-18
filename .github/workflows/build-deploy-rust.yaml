@@ -92,7 +92,7 @@ jobs:
                   echo "CARGO_REGISTRY_TOKEN=Bearer $token" >> $GITHUB_ENV
                 else
                   registry=${registry/-/_}
-                  echo "CARGO_REGISTRY_${registry^^}_TOKEN=Bearer $token" >> $GITHUB_ENV
+                  echo "CARGO_REGISTRIES_${registry^^}_TOKEN=Bearer $token" >> $GITHUB_ENV
                 fi
               fi
             done
@@ -102,7 +102,6 @@ jobs:
         env:
           CROSS_CONTAINER_OPTS: "-v $HOME/.cargo/config.toml:/root/.cargo/config.toml"
         run: |
-          echo "$CARGO_REGISTIRES_P6M_RUN_TOKEN" | base64 | base64 -d
           mkdir -p ~/.cargo
           echo '[registry]' > ~/.cargo/config.toml
           echo 'global-credential-providers = ["cargo:token"]' >> ~/.cargo/config.toml
