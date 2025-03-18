@@ -86,26 +86,18 @@ jobs:
       - name: Cargo Registry Login
         run: |
           if [ -n "${{ secrets.CARGO_TOKENS }}" ]; then
-            mkdir -p ~/.cargo
-            
-            # Set up global credential providers
-            echo '[registry]' > ~/.cargo/config.toml
-            echo 'global-credential-providers = ["cargo:token"]' >> ~/.cargo/config.toml
-            
             echo '${{ secrets.CARGO_TOKENS }}' | while IFS='=' read -r registry token; do
               if [ -n "$registry" ] && [ -n "$token" ]; then
                 if [ "$registry" = "crates-io" ]; then
-                  cargo login "$token"
+                  echo "CARGO_REGISTRY_TOKEN=$token" >> $GITHUB_ENV
                 else
-                  cargo login --registry "$registry" "$token"
+                  echo "CARGO_REGISTRY_${registry^^}_TOKEN=$token" >> $GITHUB_ENV
                 fi
               fi
             done
           fi
 
       - name: Cargo build Release
-        env:
-          CROSS_CONTAINER_OPTS: "-v $HOME/.cargo/credentials.toml:/root/.cargo/credentials.toml"  # Mount credentials to cross container
         run: |
           if [ "${{ inputs.MODE }}" = "release" ]; then
             cross build -v --release --target=${{ matrix.target }}
