@@ -89,9 +89,10 @@ jobs:
             echo '${{ secrets.CARGO_TOKENS }}' | while IFS='=' read -r registry token; do
               if [ -n "$registry" ] && [ -n "$token" ]; then
                 if [ "$registry" = "crates-io" ]; then
-                  echo "CARGO_REGISTRY_TOKEN=$token" >> $GITHUB_ENV
+                  echo "CARGO_REGISTRY_TOKEN='Bearer $token'" >> $GITHUB_ENV
                 else
-                  echo "CARGO_REGISTRY_${registry^^}_TOKEN=$token" >> $GITHUB_ENV
+                  registry=${registry/-/_}
+                  echo "CARGO_REGISTRY_${registry^^}_TOKEN='Bearer $token'" >> $GITHUB_ENV
                 fi
               fi
             done
