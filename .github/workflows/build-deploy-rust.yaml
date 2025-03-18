@@ -105,7 +105,7 @@ jobs:
 
       - name: Cargo build Release
         env:
-          CROSS_CONTAINER_OPTS: "-v $HOME/.cargo/credentials:/root/.cargo/credentials"  # Mount credentials to cross container
+          CROSS_CONTAINER_OPTS: "-v $HOME/.cargo/credentials.toml:/root/.cargo/credentials.toml"  # Mount credentials to cross container
         run: |
           if [ "${{ inputs.MODE }}" = "release" ]; then
             cross build -v --release --target=${{ matrix.target }}
