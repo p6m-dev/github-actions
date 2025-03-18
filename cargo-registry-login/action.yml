@@ -1,0 +1,29 @@
+name: 'Cargo Registry Login'
+description: 'Configure Cargo registry authentication using provided tokens'
+
+inputs:
+  cargo-tokens:
+    description: 'Registry tokens in key=value format (one per line). Example: crates-io=token1'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure Cargo Registry
+      shell: bash
+      run: |
+        mkdir -p ~/.cargo
+        echo '[registry]' > ~/.cargo/config.toml
+        echo 'global-credential-providers = ["cargo:token"]' >> ~/.cargo/config.toml
+        if [ -n "${{ inputs.cargo-tokens }}" ]; then
+          echo '${{ inputs.cargo-tokens }}' | while IFS='=' read -r registry token; do
+            if [ -n "$registry" ] && [ -n "$token" ]; then
+              if [ "$registry" = "crates-io" ]; then
+                echo "CARGO_REGISTRY_TOKEN=Bearer $token" >> $GITHUB_ENV
+              else
+                registry=${registry//-/_}
+                echo "CARGO_REGISTRIES_${registry^^}_TOKEN=Bearer $token" >> $GITHUB_ENV
+              fi
+            fi
+          done
+        fi 
