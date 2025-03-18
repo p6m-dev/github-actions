@@ -100,7 +100,7 @@ jobs:
 
       - name: Cargo build Release
         env:
-          CROSS_CONTAINER_OPTS: "-v $HOME/.cargo/config.toml:/root/.cargo/config.toml"
+          CROSS_CONTAINER_OPTS: "-v /home/runner/.cargo/config.toml:/root/.cargo/config.toml"
         run: |
           mkdir -p ~/.cargo
           echo '[registry]' > ~/.cargo/config.toml
