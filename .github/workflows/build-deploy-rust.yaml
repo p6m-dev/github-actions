@@ -100,15 +100,15 @@ jobs:
 
       - name: Cargo build Release
         env:
-          CROSS_CONTAINER_OPTS: "-v /home/runner/.cargo/config.toml:/root/.cargo/config.toml"
+          CROSS_CONTAINER_OPTS: "--volume /home/runner/.cargo/config.toml:/root/.cargo/config.toml"
         run: |
           mkdir -p ~/.cargo
           echo '[registry]' > ~/.cargo/config.toml
           echo 'global-credential-providers = ["cargo:token"]' >> ~/.cargo/config.toml
           if [ "${{ inputs.MODE }}" = "release" ]; then
-            cross build -v --release --target=${{ matrix.target }}
+            cross build --release --target=${{ matrix.target }}
           else
-            cross build -v --target=${{ matrix.target }}
+            cross build --target=${{ matrix.target }}
           fi
 
       - name: Get Package Version
