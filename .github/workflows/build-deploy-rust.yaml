@@ -84,7 +84,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Cargo Registry Login
-        uses: ./cargo-registry-login
+        uses: p6m-dev/github-actions/cargo-registry-login@main
         with:
           cargo-tokens: ${{ secrets.CARGO_TOKENS }}
 
@@ -183,7 +183,7 @@ jobs:
           version: 0.25.10
 
       - name: Cargo Registry Login
-        uses: ./cargo-registry-login
+        uses: p6m-dev/github-actions/cargo-registry-login@main
         with:
           cargo-tokens: ${{ secrets.CARGO_TOKENS }}
 
