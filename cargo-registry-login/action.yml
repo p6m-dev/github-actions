@@ -12,9 +12,10 @@ runs:
     - name: Configure Cargo Registry
       shell: bash
       run: |
-        mkdir -p ~/.cargo
-        echo '[registry]' > ~/.cargo/config.toml
-        echo 'global-credential-providers = ["cargo:token"]' >> ~/.cargo/config.toml
+        # mkdir -p ~/.cargo
+        # echo '[registry]' > ~/.cargo/config.toml
+        # echo 'global-credential-providers = ["cargo:token"]' >> ~/.cargo/config.toml
+        echo 'CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS=["cargo:token"]' >> $GITHUB_ENV
         if [ -n "${{ inputs.cargo-tokens }}" ]; then
           echo '${{ inputs.cargo-tokens }}' | while IFS='=' read -r registry token; do
             if [ -n "$registry" ] && [ -n "$token" ]; then

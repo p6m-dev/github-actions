@@ -89,8 +89,6 @@ jobs:
           cargo-tokens: ${{ secrets.CARGO_TOKENS }}
 
       - name: Cargo build Release
-        env:
-          CROSS_CONTAINER_OPTS: "--volume /home/runner/.cargo/config.toml:/root/.cargo/config.toml"
         run: |
           if [ "${{ inputs.MODE }}" = "release" ]; then
             cross build --release --target=${{ matrix.target }}
