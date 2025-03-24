@@ -26,6 +26,11 @@ on:
         type: string
         required: false
         default: release
+      DOTNET_VERSION:
+        description: .NET version (8.0, 9.0, etc)
+        type: string
+        required: false
+        default: "8.0"
       ARTIFACTORY_HOSTNAME:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
         type: string
@@ -79,7 +84,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 8.0
+          dotnet-version: ${{ inputs.DOTNET_VERSION }}
 
       - name: Login to Docker Repository
         uses: docker/login-action@v3
