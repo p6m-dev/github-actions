@@ -13,14 +13,10 @@ on:
         type: string
         required: false
       JAVA_VERSION:
-        description: Java version
+        description: Java version (17, 19, 21)
         required: false
-        default: 17
-        type: choice
-        options:
-          - 17
-          - 19
-          - 21
+        default: "17"
+        type: string
     outputs:
       digest:
         description: "The docker image digest for the built image"
