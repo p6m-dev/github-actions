@@ -12,6 +12,11 @@ on:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
         type: string
         required: false
+      JAVA_VERSION:
+        description: Java version (17, 19, 21)
+        required: false
+        default: "17"
+        type: string
     outputs:
       digest:
         description: "The docker image digest for the built image"
@@ -77,7 +82,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: "corretto"
-          java-version: "17"
+          java-version: ${{ inputs.JAVA_VERSION}}
           cache: "maven"
           overwrite-settings: false
 
@@ -109,7 +114,7 @@ jobs:
         id: mvn_build
         run: |
           mkdir artifacts
-          mvn -B deploy -Pdocker-deploy -Djib.from.image=ybor/amazoncorretto:17-alpine3.17 -Djib.from.platforms=linux/amd64,linux/arm64 -Dmaven-jib-plugin.version=3.4.1
+          mvn -B deploy -Pdocker-deploy -Djib.from.image=ybor/amazoncorretto:${{ inputs.JAVA_VERSION }}-alpine3.17 -Djib.from.platforms=linux/amd64,linux/arm64 -Dmaven-jib-plugin.version=3.4.1
           mvn $MAVEN_CLI_OPTS org.apache.maven.plugins:maven-help-plugin:3.1.1:evaluate -Dexpression=project.version -q -DforceStdout > artifacts/version
           echo $(basename ${GITHUB_REPOSITORY})
           cat $(basename ${GITHUB_REPOSITORY})-server/target/jib-image.digest
