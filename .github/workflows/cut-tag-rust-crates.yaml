@@ -1,0 +1,107 @@
+name: Promote Crates
+
+on:
+  workflow_call:
+    secrets:
+      token:
+        description: The token to use to authenticate with the Cargo registry.
+        required: true
+    inputs:
+      level:
+        description: The level of the version to bump. Can be one of major, minor, or patch.
+        type: string
+        required: false
+        default: patch
+      registry_alias:
+        description: The alias of the Cargo registry to publish to as specified in the .cargo/config.toml file of the repo.
+        type: string
+        required: false
+        default: 'crates-io' # Default to the public registry
+      packages:
+        description: A space-separated list of Cargo libraries/packages to publish. If not specified, publishes all default-members of workspace.
+        type: string
+        required: false
+        default: ''
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_RELEASE_VERSION: 0.25.10
+  COMMIT_USER: github-actions
+  COMMIT_EMAIL: github-actions@users.noreply.github.com 
+
+jobs:
+  prep:
+    runs-on: ubuntu-latest
+    outputs:
+      extra_cargo_opts: ${{ steps.cargo.outputs.extra_opts }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine Cargo command line arguments
+        id: cargo
+        run: |
+          EXTRA_CARGO_OPTS=''
+          if [ -n '${{ inputs.packages }}' ]; then
+            # If packages are specified, publish only those packages
+            CRATES_TO_PUBLISH=$(echo "${{ inputs.packages }}" | xargs -n1 echo -n ' --package')
+            EXTRA_CARGO_OPTS="$EXTRA_CARGO_OPTS $CRATES_TO_PUBLISH"
+          else
+            # If no packages specified, publish all crates in the workspace
+            EXTRA_CARGO_OPTS="--workspace"
+          fi
+          # output EXTRA_CARGO_OPTS as outputs
+          echo "extra_opts=${EXTRA_CARGO_OPTS}" >> $GITHUB_OUTPUT
+
+      - name: Install cargo-release
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-release
+          version: ${{ env.CARGO_RELEASE_VERSION }}
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [prep]
+    env:
+      EXTRA_CARGO_OPTS: ${{ needs.prep.outputs.extra_cargo_opts }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cargo-release
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-release
+          version: ${{ env.CARGO_RELEASE_VERSION }}
+
+      - name: Update metadata for current release
+        run: |
+          git config user.name ${{ env.COMMIT_USER }}
+          git config user.email ${{ env.COMMIT_EMAIL }}
+          cargo release version $EXTRA_CARGO_OPTS --no-confirm --execute ${{ inputs.level }}
+          cargo release commit --no-confirm --execute
+          cargo release tag $EXTRA_CARGO_OPTS --no-confirm --execute
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: debug # Hardcoded to debug because that is what cargo clippy/test use.
+
+      - name: Cargo Registry Login
+        uses: p6m-dev/github-actions/cargo-registry-login@main
+        with:
+          cargo-tokens: |
+            ${{ inputs.registry_alias }}=${{ secrets.token }}
+
+      - name: Publish Crates
+        run: |
+          cargo test $EXTRA_CARGO_OPTS
+          cargo release publish $EXTRA_CARGO_OPTS --registry ${{ inputs.registry_alias }} --no-confirm --no-verify --execute
+
+      - name: Prepare next beta release
+        run: |
+          cargo release version $EXTRA_CARGO_OPTS --no-confirm --execute beta
+          cargo release commit --no-confirm --execute
+
+      - name: Push Git changes
+        run: |
+          git push
+          git push --tags
