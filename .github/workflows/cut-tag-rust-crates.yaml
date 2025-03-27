@@ -3,17 +3,17 @@ name: Promote Crates
 on:
   workflow_call:
     secrets:
-      token:
-        description: The token to use to authenticate with the Cargo registry.
-        required: true
+      tokens:
+        description: A newline-separated list of 'registry=token' pairs for authenticating with Cargo registries.
+        required: false
     inputs:
       level:
         description: The level of the version to bump. Can be one of major, minor, or patch.
         type: string
         required: false
         default: patch
-      registry_alias:
-        description: The alias of the Cargo registry to publish to as specified in the .cargo/config.toml file of the repo.
+      publish_registry:
+        description: The alias of the Cargo registry where crates will be published, as specified in .cargo/config.toml.
         type: string
         required: false
         default: 'crates-io' # Default to the public registry
@@ -88,13 +88,12 @@ jobs:
       - name: Cargo Registry Login
         uses: p6m-dev/github-actions/cargo-registry-login@main
         with:
-          cargo-tokens: |
-            ${{ inputs.registry_alias }}=${{ secrets.token }}
+          cargo-tokens: ${{ secrets.tokens }}
 
       - name: Publish Crates
         run: |
           cargo test $EXTRA_CARGO_OPTS
-          cargo release publish $EXTRA_CARGO_OPTS --registry ${{ inputs.registry_alias }} --no-confirm --no-verify --execute
+          cargo release publish $EXTRA_CARGO_OPTS --registry ${{ inputs.publish_registry }} --no-confirm --no-verify --execute
 
       - name: Prepare next beta release
         run: |
