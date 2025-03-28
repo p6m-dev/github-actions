@@ -92,8 +92,24 @@ jobs:
 
       - name: Publish Crates
         run: |
-          cargo test $EXTRA_CARGO_OPTS
+          cargo test $EXTRA_CARGO_OPTS | tee -a $GITHUB_STEP_SUMMARY
           cargo release publish $EXTRA_CARGO_OPTS --registry ${{ inputs.publish_registry }} --no-confirm --no-verify --execute
+
+      - name: Update Job Summary
+        env:
+          # The summary template needs to be quoted twice. The `|-` for YAML and the `"`s for `jq`.
+          # Package metadata fields can be referenced using `\(.field_name)`.
+          # Run `cargo metadata --format-version 1 --no-deps | jq -r '.packages[0]'` in the repo root to see what metadata fields are available.
+          PACKAGE_SUMMARY_TEMPLATE: |-
+            "## \(.name)
+
+            **Version:** \(.version)
+            **Description:** \(.description)
+            "
+        run: |
+          # Always print out versions for ALL workspace packages since they may differ.
+          PACKAGES_METADATA=$(cargo metadata --format-version 1 --no-deps | jq -r '.packages')
+          echo "$PACKAGES_METADATA" | jq -r '.[] |'"$PACKAGE_SUMMARY_TEMPLATE" | tee -a $GITHUB_STEP_SUMMARY
 
       - name: Prepare next beta release
         run: |
