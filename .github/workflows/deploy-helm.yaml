@@ -81,7 +81,7 @@ jobs:
       - name: Automated Version Bump
         run: |
           pipx install pybump
-          CMD="pybump bump --file '${{ inputs.chart_dir }}/Chart.yaml' --level patch"
+          CMD="pybump bump --file 'Chart.yaml' --level patch"
           if [[ "${{ inputs.bump_app_version }}" == "true" ]]; then
             CMD="$CMD --app-version"
           fi
