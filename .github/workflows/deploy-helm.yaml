@@ -13,6 +13,16 @@ on:
         required: false
         type: boolean
         default: false
+      chart_dir:
+        description: 'Directory containing the Helm chart.'
+        required: false
+        type: string
+        default: '.'
+      bump_app_version:
+        description: 'Whether to also bump the appVersion field.'
+        required: false
+        type: boolean
+        default: false
       ARTIFACTORY_HOSTNAME:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
         type: string
@@ -54,21 +64,29 @@ jobs:
 
       - name: Helm Package
         run: helm package .
+        working-directory: ${{ inputs.chart_dir }}
 
       - name: Get Current Version
         id: current_version
         run: |
           VERSION=$(cat Chart.yaml | grep -e "^version: " | cut -d" " -f2)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+        working-directory: ${{ inputs.chart_dir }}
 
       - name: Helm Push
         if: ${{ inputs.deploy }}
         run: helm push ${{ github.event.repository.name }}-${{ steps.current_version.outputs.version }}.tgz  oci://${{ env.ARTIFACTORY_HOSTNAME}}/${{ inputs.namespace }}-docker
+        working-directory: ${{ inputs.chart_dir }}
 
       - name: Automated Version Bump
         run: |
           pipx install pybump
-          pybump bump --file ./Chart.yaml --level patch
+          CMD="pybump bump --file '${{ inputs.chart_dir }}/Chart.yaml' --level patch"
+          if [[ "${{ inputs.bump_app_version }}" == "true" ]]; then
+            CMD="$CMD --app-version"
+          fi
+          eval "$CMD"
+        working-directory: ${{ inputs.chart_dir }}
 
       - name: Commit and Push
         if: ${{ inputs.deploy }}
