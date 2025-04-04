@@ -104,7 +104,6 @@ jobs:
         env:
           CARGO_INCREMENTAL: "1"
         run: |
-          run: |
           if [ "${{ inputs.MODE }}" = "release" ]; then
             cross build --release --target=${{ matrix.target }}
           else
