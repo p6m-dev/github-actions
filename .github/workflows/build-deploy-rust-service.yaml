@@ -205,10 +205,18 @@ jobs:
           crate: cargo-release
           version: 0.25.10
 
-      - name: Publish Crates
+      - name: Publilsh Crates
         run: |
-          CRATES_TO_PUBLISH=$(echo '${{ inputs.CARGO_PACKAGES }}' | xargs -n1 echo -n ' --package')
-          cargo release publish $CRATES_TO_PUBLISH --registry ${{ inputs.CARGO_REGISTRY_ALIAS }} --no-confirm --no-verify --execute
+          CARGO_RELEASE_TARGET=''
+          if [ -n '${{ inputs.packages }}' ]; then
+            # If packages are specified, publish only those packages
+            CRATES_TO_PUBLISH=$(echo "${{ inputs.packages }}" | xargs -n1 echo -n ' --package')
+            CARGO_RELEASE_TARGET="$CARGO_RELEASE_TARGET $CRATES_TO_PUBLISH"
+          else
+            # If no packages specified, publish all crates in the workspace
+            CARGO_RELEASE_TARGET="--workspace"
+          fi
+          cargo release publish $CARGO_RELEASE_TARGET --registry ${{ inputs.CARGO_REGISTRY_ALIAS }} --no-confirm --no-verify --execute
 
   trigger-cd:
     if: github.ref_name == 'main'
