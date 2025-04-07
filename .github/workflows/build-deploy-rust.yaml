@@ -91,9 +91,9 @@ jobs:
       - name: Cargo build Release
         run: |
           if [ "${{ inputs.MODE }}" = "release" ]; then
-            cross build --release --target=${{ matrix.target }}
+            cross build --release --target=${{ matrix.target }} -vv
           else
-            cross build --target=${{ matrix.target }}
+            cross build --target=${{ matrix.target }} -vv
           fi
 
       - name: Get Package Version
