@@ -53,6 +53,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   DOCKER_REGISTRY: ${{ inputs.DOCKER_REGISTRY || vars.ARTIFACTORY_HOSTNAME}}
+  RUST_TOOLCHAIN: stable
 
 jobs:
   build:
@@ -68,16 +69,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          cache-key: ${{ env.RUST_TOOLCHAIN }}-${{ matrix.target }}-${{ inputs.MODE }}
+
       - name: Cache rustup
         uses: actions/cache@v4
         with:
           path: ~/.rustup
-          key: ${{ runner.os }}-${{ matrix.target }}-${{ inputs.MODE }}-rustup
-
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2
+          key: ${{ env.RUST_TOOLCHAIN }}-${{ runner.os }}-${{ matrix.target }}-${{ inputs.MODE }}-rustup
+          
+      - name: Cache xargo
+        uses: actions/cache@v4
         with:
-          key: ${{ matrix.target }}-${{ inputs.MODE }}
+          path: ~/.xargo
+          key: ${{ env.RUST_TOOLCHAIN }}-${{ runner.os }}-${{ matrix.target }}-${{ inputs.MODE }}-xargo
 
       - name: Install rust cross
         uses: baptiste0928/cargo-install@v3
@@ -97,14 +104,12 @@ jobs:
       - name: Cargo build Release
         run: |
           if [ "${{ inputs.MODE }}" = "release" ]; then
-            cross build --release --target=${{ matrix.target }} -vv
+            cross build --release --target=${{ matrix.target }} -v
           else
-            cross build --target=${{ matrix.target }} -vv
+            cross build --target=${{ matrix.target }} -v
           fi
         env:
-          CROSS_BUILD_OPTS: |
-            --cache-from=type=gha
-            --cache-to=type=gha,mode=max
+          CROSS_BUILD_OPTS: "--cache-from=type=gha --cache-to=type=gha,mode=max"
 
       - name: Get Package Version
         id: pkg-version
