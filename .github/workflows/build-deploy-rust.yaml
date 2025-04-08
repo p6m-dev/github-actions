@@ -101,6 +101,10 @@ jobs:
           else
             cross build --target=${{ matrix.target }} -vv
           fi
+        env:
+          CROSS_BUILD_OPTS: |
+            --cache-from=type=gha
+            --cache-to=type=gha,mode=max
 
       - name: Get Package Version
         id: pkg-version
