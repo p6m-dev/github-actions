@@ -52,20 +52,11 @@ For security, it's recommended to store your tokens as GitHub Secrets:
       private-registry=${{ secrets.PRIVATE_REGISTRY_TOKEN }}
 ```
 
-
 ### Inputs
 
 | Input | Description | Required |
 |-------|-------------|----------|
-| `cargo-tokens` | Registry tokens in key=value format (one per line) | No |
-
-### Token Format
-
-The `cargo-tokens` input accepts tokens in the following format:
-- One registry token per line
-- Each line should be in `registry=token` format
-- Use `crates-io` for the official crates.io registry
-- Use custom names for other registries
+| `cargo-tokens` | Registry tokens in key=value format (one per line). The key should correspond to registry alias in your `.cargo/config.toml` | No |
 
 ### Environment Variables Set
 
