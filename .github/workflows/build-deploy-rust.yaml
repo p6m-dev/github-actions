@@ -72,12 +72,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.rustup
-          key: ${{ runner.os}}-${{ matrix.target }}-${{ inputs.MODE }}-rustup
+          key: ${{ runner.os }}-${{ matrix.target }}-${{ inputs.MODE }}-rustup
 
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ runner.os }}-${{ matrix.target }}-${{ inputs.MODE }}
+          key: ${{ matrix.target }}-${{ inputs.MODE }}
 
       - name: Install rust cross
         uses: baptiste0928/cargo-install@v3
