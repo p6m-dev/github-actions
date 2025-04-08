@@ -73,6 +73,7 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           cache-key: ${{ env.RUST_TOOLCHAIN }}-${{ matrix.target }}-${{ inputs.MODE }}
+          rustflags: ""
 
       - name: Cache rustup
         uses: actions/cache@v4
