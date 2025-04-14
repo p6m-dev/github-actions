@@ -54,6 +54,11 @@ on:
         type: string
         required: false
         default: ''
+      DO_VERSION_BUMP:
+        description: A value indication whether to bump the version as the final step or not.
+        type: boolean
+        required: false
+        default: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -98,7 +103,7 @@ jobs:
 
       - name: Get Package Version
         id: pkg-version
-        run: echo "VERSION=$(cargo xtask docker image version)" >> $GITHUB_OUTPUT
+        run: echo "VERSION=$(cargo xtask pkg-version)" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
         with:
@@ -197,7 +202,7 @@ jobs:
           crate: cargo-release
           version: 0.25.10
 
-      - name: Publilsh Crates
+      - name: Publish Crates
         run: |
           CARGO_RELEASE_TARGET=''
           if [ -n '${{ inputs.packages }}' ]; then
@@ -209,6 +214,47 @@ jobs:
             CARGO_RELEASE_TARGET="--workspace"
           fi
           cargo release publish $CARGO_RELEASE_TARGET --registry ${{ inputs.CARGO_REGISTRY_ALIAS }} --no-confirm --no-verify --execute
+  
+  bump-version:
+    if: ${{ inputs.DO_VERSION_BUMP && github.ref_name == 'main' }}
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - publish-crates
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag and Push
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git tag -a ${{ needs.build.outputs.VERSION }} -m "Release ${{ needs.build.outputs.VERSION }}"
+          git push origin ${{ needs.build.outputs.VERSION }}
+
+      - name: Install cargo-release
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-release
+          version: 0.25.10
+
+      - name: Login to Cargo Repository
+        run: |
+          cargo login --registry ${{ inputs.CARGO_REGISTRY_ALIAS }} 'Bearer ${{ secrets.CARGO_TOKEN }}'
+          cat > ~/.cargo/config.toml <<CONFIG
+          [registry]
+          global-credential-providers = ["cargo:token"]
+          CONFIG
+
+      - name: Bump Version
+        run: cargo release version patch -x --no-confirm --workspace
+
+      - name: Commit and Push
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -m "[skip ci] Bump Version"
+          git push
 
   trigger-cd:
     if: github.ref_name == 'main'
