@@ -200,7 +200,7 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
-          version: 0.25.10
+          version: 0.25.18
 
       - name: Publish Crates
         run: |
@@ -235,7 +235,7 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
-          version: 0.25.10
+          version: 0.25.18
 
       - name: Login to Cargo Repository
         run: |
