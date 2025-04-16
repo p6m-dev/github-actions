@@ -80,11 +80,17 @@ jobs:
 
       - name: Lint
         run: |
+          echo '## Clippy Results' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
           cargo clippy --all-targets --all-features -- -D warnings | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Test Crates
         run: |
+          echo '## Test Results' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
           cargo test $EXTRA_CARGO_OPTS | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   # Bump versions to unblock SDLC as soon as possible
   bump-version:
