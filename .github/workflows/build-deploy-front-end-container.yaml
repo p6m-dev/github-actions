@@ -108,7 +108,7 @@ jobs:
 
       - name: Build
         run: |
-          pnpm nx run-many --target=build --all --parallel=5 --prod --exclude docs
+          pnpm nx run-many --target=build --all --parallel=5 --prod --exclude docs --skip-nx-cache
 
       - name: Set up Docker Buildx
         id: buildx
