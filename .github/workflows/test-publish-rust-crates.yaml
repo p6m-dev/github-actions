@@ -64,7 +64,6 @@ jobs:
     needs: [prep]
     env:
       EXTRA_CARGO_OPTS: ${{ needs.prep.outputs.extra_cargo_opts }}
-      K8S_OPENAPI_ENABLED_VERSION: "1.31"
     steps:
       - uses: actions/checkout@v4
 
@@ -79,17 +78,25 @@ jobs:
           cargo-tokens: ${{ secrets.tokens }}
 
       - name: Lint
+        if: always()
+        id: lint
+        run: cargo clippy --all-targets --all-features -- -D warnings 2>&1
+
+      - name: Test Crates
+        if: always()
+        id: test
+        run: cargo test $EXTRA_CARGO_OPTS 2>&1
+
+      - name: Output Summary
+        if: always()
         run: |
           echo '## Clippy Results' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          cargo clippy --all-targets --all-features -- -D warnings | tee -a $GITHUB_STEP_SUMMARY
+          echo "${{ steps.lint.outputs.stdout }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-
-      - name: Test Crates
-        run: |
           echo '## Test Results' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          cargo test $EXTRA_CARGO_OPTS | tee -a $GITHUB_STEP_SUMMARY
+          echo "${{ steps.test.outputs.stdout }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
   # Bump versions to unblock SDLC as soon as possible
