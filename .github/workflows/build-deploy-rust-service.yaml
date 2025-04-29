@@ -152,7 +152,6 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ needs.build.pkg-version.outputs.VERSION }},enable={{is_default_branch}}
-            type=ref,event=branch,prefix=${{ needs.build.pkg-version.outputs.VERSION }}-,enable=${{ github.ref_name != 'main' }}
             type=sha
 
       - name: Build and push
