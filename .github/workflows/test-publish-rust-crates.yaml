@@ -131,14 +131,27 @@ jobs:
           git push
           git push --tags
 
-  publish-crates:
+  matrix:
     if: ${{ inputs.publish }}
     runs-on: ubuntu-latest
     needs: [prep, test]
+    outputs:
+      publish_registry: ${{ steps.publish_registry.outputs.publish_registry }}
+    steps:
+      - name: Generate publish registry matrix
+        id: publish_registry
+        run: |
+          PUBLISH_REGISTRY_JSON=$(echo "${{ inputs.publish_registry }}" | jq -R -s -c 'split("\n")[:-1]')
+          echo "publish_registry=$PUBLISH_REGISTRY_JSON" >> $GITHUB_OUTPUT
+
+  publish-crates:
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-latest
+    needs: [matrix]
     strategy:
       fail-fast: false
       matrix:
-        publish_registry: ${{ fromJson(format('["%s"]', replace(github.event.inputs.publish_registry, '\n', '","'))) }}
+        publish_registry: ${{ fromJson(steps.publish_registry.outputs.publish_registry) }}
 
     env:
       EXTRA_CARGO_OPTS: ${{ needs.prep.outputs.extra_cargo_opts }}
