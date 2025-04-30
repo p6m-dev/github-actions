@@ -141,7 +141,7 @@ jobs:
       - name: Generate publish registry matrix
         id: publish_registry
         run: |
-          PUBLISH_REGISTRY_JSON=$(echo "${{ inputs.publish_registry }}" | jq -R -s -c 'split("\n")[:-1]')
+          PUBLISH_REGISTRY_JSON=$(echo "${{ inputs.publish_registry }}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "publish_registry=$PUBLISH_REGISTRY_JSON" >> $GITHUB_OUTPUT
 
   publish-crates:
