@@ -151,7 +151,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        publish_registry: ${{ fromJSON(steps.publish_registry.outputs.publish_registry) }}
+        publish_registry: ${{ fromJSON(needs.matrix.outputs.publish_registry) }}
 
     env:
       EXTRA_CARGO_OPTS: ${{ needs.prep.outputs.extra_cargo_opts }}
