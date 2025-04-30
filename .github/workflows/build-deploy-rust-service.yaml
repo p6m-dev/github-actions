@@ -5,7 +5,7 @@ on:
     outputs:
       digest:
         description: "The docker image digest for the built image"
-        value: ${{ jobs.deploy-image.outputs.digest }}
+        value: ${{ jobs.build-publish-image.outputs.digest }}
     secrets:
       DOCKER_USERNAME:
         description: The username to use to authenticate with the Docker registry.
@@ -118,7 +118,7 @@ jobs:
           name: targets-${{ matrix.target }}
           path: ./target
 
-  deploy-image:
+  build-publish-image:
     outputs:
       digest: ${{ steps.docker_build.outputs.digest }}
     runs-on: ubuntu-latest
@@ -266,17 +266,17 @@ jobs:
   trigger-cd:
     if: github.ref_name == 'main'
     runs-on: ubuntu-latest
-    needs: deploy-image
+    needs: build-publish-image
 
     steps:
       - name: Trigger Update Image Digest
         run: |
           echo ${{ github.ref }}
-          echo ${{ needs.deploy-image.outputs.digest }}
+          echo ${{ needs.build-publish-image.outputs.digest }}
           echo ${{ vars.PLATFORM_DISPATCH_URL }}
           curl -X POST \
             -H "Accept: application/vnd.github.everest-preview+json" \
             -H "Authorization: token ${{ secrets.UPDATE_MANIFEST_TOKEN }}" \
             ${{ vars.PLATFORM_DISPATCH_URL }} \
             --fail-with-body \
-            -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"dev\", \"digest\": \"${{ needs.deploy-image.outputs.digest }}\"}}"
+            -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"dev\", \"digest\": \"${{ needs.build-publish-image.outputs.digest }}\"}}"
