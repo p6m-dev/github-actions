@@ -89,15 +89,15 @@ jobs:
       - name: Build the application
         run: |
           dotnet restore
-          dotnet build -c Release --no-restore --version-suffix "alpha.${{ github.run_number }}"
-          dotnet publish -c Release --version-suffix "alpha.${{ github.run_number }}" -o ./publish
+          dotnet build -c Release --no-restore --version-suffix ${{ github.run_number }}
+          dotnet publish -c Release --version-suffix ${{ github.run_number }} -o ./publish
 
       - name: Run tests
         run: dotnet test -c Release --no-build --verbosity normal  
 
       - name: Pack and push packages to Artifactory
         run: |
-          dotnet pack --configuration Release -o ./artifacts --version-suffix "alpha.${{ github.run_number }}"
+          dotnet pack --configuration Release -o ./artifacts --version-suffix ${{ github.run_number }}
           for package in ./artifacts/*.nupkg; do
             dotnet nuget push "$package" --source "${{ github.repository_owner }}-nuget" --api-key "${{ secrets.ARTIFACTORY_USERNAME }}:${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}"
           done
