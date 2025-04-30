@@ -138,7 +138,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        publish_registry: ${{ split(github.event.inputs.publish_registry, '\n') }}
+        publish_registry: ${{ fromJson(format('["%s"]', replace(github.event.inputs.publish_registry, '\n', '","'))) }}
 
     env:
       EXTRA_CARGO_OPTS: ${{ needs.prep.outputs.extra_cargo_opts }}
