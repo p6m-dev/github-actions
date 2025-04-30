@@ -13,10 +13,11 @@ on:
         required: false
         default: true
       publish_registry:
-        description: The alias of the Cargo registry where crates will be published, as specified in .cargo/config.toml.
+        description: The alias of the Cargo registry where crates will be published, as specified in .cargo/config.toml. Newline separated for multiple registries.
         type: string
         required: false
-        default: "crates-io" # Default to the public registry
+        default: |
+          "crates-io" # Default to the public registry
       packages:
         description: A space-separated list of Cargo libraries/packages to publish. If not specified, publishes all default-members of workspace.
         type: string
@@ -131,9 +132,13 @@ jobs:
           git push --tags
 
   publish-crates:
+    if: ${{ inputs.publish }}
     runs-on: ubuntu-latest
     needs: [prep, test]
-    if: ${{ inputs.publish }}
+    strategy:
+      fail-fast: false
+      matrix:
+        publish_registry: ${{ split(github.event.inputs.publish_registry, '\n') }}
 
     env:
       EXTRA_CARGO_OPTS: ${{ needs.prep.outputs.extra_cargo_opts }}
@@ -154,7 +159,7 @@ jobs:
 
       - name: Publish Crates
         run: |
-          cargo release publish $EXTRA_CARGO_OPTS --registry ${{ inputs.publish_registry }} --no-confirm --no-verify --execute
+          cargo release publish $EXTRA_CARGO_OPTS --registry ${{ matrix.publish_registry }} --no-confirm --no-verify --execute
 
       - name: Update Job Summary
         env:
