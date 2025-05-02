@@ -47,8 +47,8 @@ jobs:
             CRATES_TO_PUBLISH=$(echo "${{ inputs.packages }}" | xargs -n1 echo -n ' --package')
             EXTRA_CARGO_OPTS="$EXTRA_CARGO_OPTS $CRATES_TO_PUBLISH"
           else
-            # If no packages specified, publish all crates in the workspace
-            EXTRA_CARGO_OPTS="--workspace"
+            # If no packages specified, publish all unpublished crates in the workspace
+            EXTRA_CARGO_OPTS="--unpublished"
           fi
           # output EXTRA_CARGO_OPTS as outputs
           echo "extra_opts=${EXTRA_CARGO_OPTS}" >> $GITHUB_OUTPUT
