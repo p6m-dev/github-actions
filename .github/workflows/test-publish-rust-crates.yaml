@@ -48,7 +48,8 @@ jobs:
             EXTRA_CARGO_OPTS="$EXTRA_CARGO_OPTS $CRATES_TO_PUBLISH"
           else
             # If no packages specified, publish all unpublished crates in the workspace
-            EXTRA_CARGO_OPTS="--unpublished"
+            # EXTRA_CARGO_OPTS="--unpublished"
+            EXTRA_CARGO_OPTS="--workspace"
           fi
           # output EXTRA_CARGO_OPTS as outputs
           echo "extra_opts=${EXTRA_CARGO_OPTS}" >> $GITHUB_OUTPUT
