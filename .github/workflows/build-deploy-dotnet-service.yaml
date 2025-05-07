@@ -85,24 +85,28 @@ jobs:
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
 
-      # Build the application
-      - name: Build the application
+      - name: Install xmlstarlet
+        run: sudo apt-get install -y xmlstarlet
+
+      - name: Build
         run: |
           dotnet restore
-          dotnet build -c Release --no-restore --version-suffix ${{ github.run_number }}
-          dotnet publish -c Release --version-suffix ${{ github.run_number }} -o ./publish
+          dotnet build -c Release --no-restore 
+          dotnet publish -c Release -o ./publish
 
-      - name: Run tests
+      - name: Test
         run: dotnet test -c Release --no-build --verbosity normal  
 
-      - name: Pack and push packages to Artifactory
+      - name: Pack and push nuget packages
+        if: github.ref_name == 'main'
         run: |
-          dotnet pack --configuration Release -o ./artifacts --version-suffix ${{ github.run_number }}
+          dotnet pack -c Release -o ./artifacts
           for package in ./artifacts/*.nupkg; do
             dotnet nuget push "$package" --source "${{ github.repository_owner }}-nuget" --api-key "${{ secrets.ARTIFACTORY_USERNAME }}:${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}"
           done
       
       - name: Docker meta
+        if: github.ref_name == 'main'
         id: meta
         uses: docker/metadata-action@v4
         with:
@@ -116,6 +120,7 @@ jobs:
             type=sha
 
       - name: Docker Build and Push
+        if: github.ref_name == 'main'
         id: docker_build
         uses: docker/build-push-action@v6
         with:
@@ -127,12 +132,39 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      
+      - name: Bump pre-release version
+        if: github.ref_name == 'main'
+        id: increment_prerelease_version
+        run: |
+          VERSION_PREFIX=$(xmlstarlet sel -t -v "//VersionPrefix" Directory.Build.props)
+          VERSION_SUFFIX=$(xmlstarlet sel -t -v "//VersionSuffix" Directory.Build.props)
+          echo "VERSION_SUFFIX=${VERSION_SUFFIX}"
+
+          IFS='.' read -ra VERSION_PARTS <<< "${VERSION_SUFFIX}"
+          STAGE=${VERSION_PARTS[0]}
+          REVISION=${VERSION_PARTS[1]}
+
+          REVISION=$((REVISION + 1))
+
+          # Construct the new version
+          NEW_VERSION_SUFFIX="$STAGE.$REVISION"
+          echo "NEW_VERSION_SUFFIX: $NEW_VERSION_SUFFIX"
+
+          xmlstarlet ed --inplace -u "//VersionSuffix" -v "${NEW_VERSION_SUFFIX}" Directory.Build.props
+          cat Directory.Build.props  # Print to verify the update
+        
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -am "[skip ci] Bump pre-release version ${VERSION_PREFIX}-${NEW_VERSION_SUFFIX}"
+          git push origin main
 
       - name: Record Summary
         run: |
           echo "### Docker Image Digest" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.docker_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
-       
+      
   trigger-cd:
     name: Trigger CD
     if: github.ref_name == 'main'

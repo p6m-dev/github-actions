@@ -96,14 +96,13 @@ jobs:
       - name: Install xmlstarlet
         run: sudo apt-get install -y xmlstarlet
 
-      # Build the application
-      - name: Build the application
+      - name: Build
         run: |
           dotnet restore
           dotnet build -c Release --no-restore
           dotnet publish -c Release -o ./publish
 
-      - name: Run tests
+      - name: Test
         run: dotnet test -c Release --no-build --verbosity normal 
 
       - name: Get TAG version
@@ -122,7 +121,7 @@ jobs:
           git tag -a ${{ steps.TAG.outputs.tag_name }} -m "Release ${{ steps.TAG.outputs.value }}"
           git push origin ${{ steps.TAG.outputs.tag_name }}
 
-      - name: Pack and push packages to Artifactory
+      - name: Pack and push nuget packages
         run: |
           dotnet pack --configuration Release -o ./artifacts
           for package in ./artifacts/*.nupkg; do
@@ -156,7 +155,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Increment version
+      - name: Bump release version
         id: increment_version
         run: |
           # Split version into components
@@ -179,20 +178,22 @@ jobs:
 
           # Construct the new version
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          # Reset pre-release version to 'beta.1'
+          NEW_VERSION_SUFFIX="beta.1"
+
           echo "New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "NEW_VERSION_SUFFIX: $NEW_VERSION_SUFFIX"
+          echo "NEW_VERSION_SUFFIX=$NEW_VERSION_SUFFIX" >> $GITHUB_OUTPUT
 
-      - name: Update version in Directory.Build.props
-        run: |
-          xmlstarlet ed --inplace -u "//VersionPrefix" -v "${{ steps.increment_version.outputs.new_version }}" Directory.Build.props
+          xmlstarlet ed --inplace -u "//VersionPrefix" -v "${NEW_VERSION}" Directory.Build.props
+          xmlstarlet ed --inplace -u "//VersionSuffix" -v "${NEW_VERSION_SUFFIX}" Directory.Build.props
           cat Directory.Build.props  # Print to verify the update
 
-      - name: Commit incremented version
-        run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add .
-          git commit -am "[skip ci] Prepare next version ${{ steps.increment_version.outputs.new_version }}"
+          git commit -am "[skip ci] Bump version ${NEW_VERSION}-${NEW_VERSION_SUFFIX}"
           git push origin main
 
       - name: Record Summary
@@ -203,8 +204,6 @@ jobs:
           echo "${{ steps.docker_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
           echo "### Release Version" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.TAG.outputs.release_version }}" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Version" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.increment_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY  
 
       - name: Prepare Artifact
         run: |
