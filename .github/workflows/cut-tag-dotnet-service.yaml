@@ -53,8 +53,6 @@ on:
         type: string
         default: './Dockerfile'
         required: false
-      RELEASE_TYPE:
-        de
 
 env:
   ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.ARTIFACTORY_HOSTNAME }}
