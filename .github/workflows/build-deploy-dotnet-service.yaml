@@ -100,7 +100,7 @@ jobs:
       - name: Pack and push nuget packages
         if: github.ref_name == 'main'
         run: |
-          dotnet pack --configuration Release -o ./artifacts --version-suffix ${{ github.run_number }}
+          dotnet pack -c Release -o ./artifacts
           for package in ./artifacts/*.nupkg; do
             dotnet nuget push "$package" --source "${{ github.repository_owner }}-nuget" --api-key "${{ secrets.ARTIFACTORY_USERNAME }}:${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}"
           done
