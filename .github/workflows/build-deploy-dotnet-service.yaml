@@ -142,13 +142,13 @@ jobs:
           echo "VERSION_SUFFIX=${VERSION_SUFFIX}"
 
           IFS='.' read -ra VERSION_PARTS <<< "${VERSION_SUFFIX}"
-          LABEL=${VERSION_PARTS[0]}
+          STAGE=${VERSION_PARTS[0]}
           REVISION=${VERSION_PARTS[1]}
 
           REVISION=$((REVISION + 1))
 
           # Construct the new version
-          NEW_VERSION_SUFFIX="$LABEL.$REVISION"
+          NEW_VERSION_SUFFIX="$STAGE.$REVISION"
           echo "NEW_VERSION_SUFFIX: $NEW_VERSION_SUFFIX"
 
           xmlstarlet ed --inplace -u "//VersionSuffix" -v "${NEW_VERSION_SUFFIX}" Directory.Build.props
