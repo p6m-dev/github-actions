@@ -1,0 +1,151 @@
+name: Dev Build & Deploy
+
+on:
+  workflow_call:
+    secrets:
+      ARTIFACTORY_TOKEN:
+        required: true
+      ARTIFACTORY_USERNAME:
+        required: true
+      ARTIFACTORY_IDENTITY_TOKEN:
+        required: true
+      UPDATE_MANIFEST_TOKEN:
+        required: true
+      CONTENTFUL_ACCESS_TOKEN:
+        required: false
+      CONTENTFUL_PREVIEW_ACCESS_TOKEN:
+        required: false
+      CONTENTFUL_SPACE_ID:
+        required: false
+      CONTENTFUL_ENVIRONMENT_ID:
+        required: false
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
+    inputs:
+      REACT_APP_ENV:
+        required: false
+        type: string
+      ARTIFACTORY_REGISTRY:
+        required: false
+        type: string
+      AWS_ACCOUNT_ID:
+        required: false
+        type: string
+      AWS_TFSTATE_BUCKET:
+        required: false
+        type: string
+      AWS_REGION:
+        required: false
+        type: string
+
+env:
+  ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+  ARTIFACTORY_IDENTITY_TOKEN: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+  UPDATE_MANIFEST_TOKEN: ${{ secrets.UPDATE_MANIFEST_TOKEN }}
+  ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+  REACT_APP_ENV: ${{ inputs.REACT_APP_ENV }}
+  ARTIFACTORY_REGISTRY: ${{ inputs.ARTIFACTORY_REGISTRY || vars.ARTIFACTORY_HOSTNAME}}
+  CONTENTFUL_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN || '' }}
+  CONTENTFUL_PREVIEW_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_PREVIEW_ACCESS_TOKEN || '' }}
+  CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID || '' }}
+  CONTENTFUL_ENVIRONMENT_ID: ${{ secrets.CONTENTFUL_ENVIRONMENT_ID || '' }}
+  INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  AWS_DEFAULT_REGION: ${{ inputs.AWS_REGION }}
+  AWS_REGION: ${{ inputs.AWS_REGION }}
+  AWS_DEFAULT_OUTPUT: json
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  NODE_OPTIONS: "--max_old_space_size=4096"
+
+jobs:
+  build-and-publish-snapshots:
+    environment: dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup NodeJS 18
+        uses: actions/setup-node@v1
+        with:
+          node-version: 18
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Get pnpm cache directory path
+        id: pnpm-cache-dir-path
+        run: echo "::set-output name=dir::$(pnpm config get cacheFolder)"
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v3
+        id: pnpm-cache
+        with:
+          path: |
+            ${{ steps.pnpm-cache-dir-path.outputs.dir }}
+            **\node_modules
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        run: pnpm install
+
+      - name: Test
+        run: |
+          pnpm nx run-many --target=lint --all --parallel=5
+      
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-tests-report
+          path: coverage
+
+      - name: Build
+        run: |
+          pnpm nx run-many --target=build --all --parallel=5 --prod --exclude docs --skip-nx-cache
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Artifactory Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.ARTIFACTORY_REGISTRY }}
+          username: ${{ secrets.ARTIFACTORY_USERNAME }}
+          password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+
+      - name: Affected apps
+        run: |
+          APPS=$(pnpm nx show projects --type app --exclude docs | cut -d, -f1)
+          echo "Affected applications: $APPS"
+          echo "AFFECTED_APPS=$(echo $APPS)" >> $GITHUB_ENV
+
+      - name: Build and push docker image
+        id: build_image
+        env:
+          INPUT_PLATFORMS: linux/amd64,linux/arm64
+        run: |
+          for APP in $AFFECTED_APPS
+          do
+            VERSION="schedule" pnpm nx deploy $APP
+            echo "------------------------------"
+            echo "Trigger Update Image Digest..."
+            echo "Github ref: ${{ github.ref }}"
+            echo "Image digest: $(cat ./node_modules/.cache/nx-container/$APP/digest)"
+            echo ${{ vars.PLATFORM_DISPATCH_URL }}
+            curl -X POST \
+              -vvvv \
+              -H "Accept: application/vnd.github.everest-preview+json" \
+              -H "Authorization: token ${{ secrets.UPDATE_MANIFEST_TOKEN }}" \
+              ${{ vars.PLATFORM_DISPATCH_URL }} \
+              --fail-with-body \
+              -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"fe-$APP\", \"resource_directory_name\": \"$(basename ${GITHUB_REPOSITORY})/$APP\", \"image_name\": \"fe-$APP\", \"environment_dir\": \"dev\", \"digest\": \"$(cat ./node_modules/.cache/nx-container/$APP/digest)\"}}"
+            rm -rf .nx-container
+          done
