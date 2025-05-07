@@ -137,6 +137,7 @@ jobs:
         if: github.ref_name == 'main'
         id: increment_prerelease_version
         run: |
+          VERSION_PREFIX=$(xmlstarlet sel -t -v "//VersionPrefix" Directory.Build.props)
           VERSION_SUFFIX=$(xmlstarlet sel -t -v "//VersionSuffix" Directory.Build.props)
           echo "VERSION_SUFFIX=${VERSION_SUFFIX}"
 
@@ -156,7 +157,7 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add .
-          git commit -am "[skip ci] Bump pre-release version ${NEW_VERSION_SUFFIX}"
+          git commit -am "[skip ci] Bump pre-release version ${VERSION_PREFIX}-${NEW_VERSION_SUFFIX}"
           git push origin main
 
       - name: Record Summary
