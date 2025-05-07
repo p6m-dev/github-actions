@@ -146,6 +146,6 @@ jobs:
               -H "Authorization: token ${{ secrets.UPDATE_MANIFEST_TOKEN }}" \
               ${{ vars.PLATFORM_DISPATCH_URL }} \
               --fail-with-body \
-              -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"fe-$APP\", \"resource_directory_name\": \"$(basename ${GITHUB_REPOSITORY})/apps/$APP\", \"image_name\": \"fe-$APP\", \"environment_dir\": \"dev\", \"digest\": \"$(cat ./node_modules/.cache/nx-container/$APP/digest)\"}}"
+              -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"dev\", \"digest\": \"$(cat ./node_modules/.cache/nx-container/$APP/digest)\"}}"
             rm -rf .nx-container
           done
