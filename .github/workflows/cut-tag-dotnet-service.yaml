@@ -155,7 +155,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Increment version
+      - name: Bump release version
         id: increment_version
         run: |
           # Split version into components
@@ -186,19 +186,14 @@ jobs:
           echo "NEW_VERSION_SUFFIX: $NEW_VERSION_SUFFIX"
           echo "NEW_VERSION_SUFFIX=$NEW_VERSION_SUFFIX" >> $GITHUB_OUTPUT
 
-      - name: Update version in Directory.Build.props
-        run: |
-          xmlstarlet ed --inplace -u "//VersionPrefix" -v "${{ steps.increment_version.outputs.new_version }}" Directory.Build.props
-          
-          xmlstarlet ed --inplace -u "//VersionSuffix" -v "${{ steps.increment_version.outputs.NEW_VERSION_SUFFIX }}" Directory.Build.props
+          xmlstarlet ed --inplace -u "//VersionPrefix" -v "${NEW_VERSION}" Directory.Build.props
+          xmlstarlet ed --inplace -u "//VersionSuffix" -v "${NEW_VERSION_SUFFIX}" Directory.Build.props
           cat Directory.Build.props  # Print to verify the update
 
-      - name: Commit incremented version
-        run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add .
-          git commit -am "[skip ci] Prepare next version ${{ steps.increment_version.outputs.new_version }}"
+          git commit -am "[skip ci] Prepare next version ${NEW_VERSION}-${NEW_VERSION_SUFFIX}"
           git push origin main
 
       - name: Record Summary
@@ -209,8 +204,6 @@ jobs:
           echo "${{ steps.docker_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
           echo "### Release Version" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.TAG.outputs.release_version }}" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Version" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.increment_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY  
 
       - name: Prepare Artifact
         run: |
