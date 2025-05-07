@@ -96,14 +96,13 @@ jobs:
       - name: Install xmlstarlet
         run: sudo apt-get install -y xmlstarlet
 
-      # Build the application
-      - name: Build the application
+      - name: Build
         run: |
           dotnet restore
           dotnet build -c Release --no-restore
           dotnet publish -c Release -o ./publish
 
-      - name: Run tests
+      - name: Test
         run: dotnet test -c Release --no-build --verbosity normal 
 
       - name: Get TAG version
@@ -122,7 +121,7 @@ jobs:
           git tag -a ${{ steps.TAG.outputs.tag_name }} -m "Release ${{ steps.TAG.outputs.value }}"
           git push origin ${{ steps.TAG.outputs.tag_name }}
 
-      - name: Pack and push packages to Artifactory
+      - name: Pack and push nuget packages
         run: |
           dotnet pack --configuration Release -o ./artifacts
           for package in ./artifacts/*.nupkg; do
