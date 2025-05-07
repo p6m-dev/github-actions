@@ -133,7 +133,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
-      - name: Bump Pre-release version
+      - name: Bump pre-release version
         if: github.ref_name == 'main'
         id: increment_prerelease_version
         run: |

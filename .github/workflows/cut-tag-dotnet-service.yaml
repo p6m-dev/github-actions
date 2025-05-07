@@ -53,6 +53,8 @@ on:
         type: string
         default: './Dockerfile'
         required: false
+      RELEASE_TYPE:
+        de
 
 env:
   ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.ARTIFACTORY_HOSTNAME }}
@@ -178,12 +180,19 @@ jobs:
 
           # Construct the new version
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          # Reset pre-release version to 'beta.1'
+          NEW_VERSION_SUFFIX="beta.1"
+
           echo "New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "NEW_VERSION_SUFFIX: $NEW_VERSION_SUFFIX"
+          echo "NEW_VERSION_SUFFIX=$NEW_VERSION_SUFFIX" >> $GITHUB_OUTPUT
 
       - name: Update version in Directory.Build.props
         run: |
           xmlstarlet ed --inplace -u "//VersionPrefix" -v "${{ steps.increment_version.outputs.new_version }}" Directory.Build.props
+          
+          xmlstarlet ed --inplace -u "//VersionSuffix" -v "${{ steps.increment_version.outputs.NEW_VERSION_SUFFIX }}" Directory.Build.props
           cat Directory.Build.props  # Print to verify the update
 
       - name: Commit incremented version
