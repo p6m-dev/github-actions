@@ -149,7 +149,7 @@ jobs:
             ${{ env.DOCKER_REGISTRY }}/${{ inputs.DOCKER_IMAGE_NAME }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ needs.build.pkg-version.outputs.VERSION }},enable={{is_default_branch}}
+            type=raw,value=${{ needs.build.outputs.version }},enable={{is_default_branch}}
             type=sha
 
       - name: Build and push
@@ -170,7 +170,7 @@ jobs:
 
       - name: Record Summary
         run: |
-          echo "Rust Application version: ${{ needs.build.pkg-version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "Rust Application version: ${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "Docker image digest: ${{ steps.docker_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
           echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
           echo "```" >> $GITHUB_STEP_SUMMARY
@@ -231,8 +231,8 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git tag -a ${{ needs.build.outputs.VERSION }} -m "Release ${{ needs.build.outputs.VERSION }}"
-          git push origin ${{ needs.build.outputs.VERSION }}
+          git tag -a ${{ needs.build.outputs.version }} -m "Release ${{ needs.build.outputs.version }}"
+          git push origin ${{ needs.build.outputs.version }}
 
       - name: Install cargo-release
         uses: baptiste0928/cargo-install@v3
