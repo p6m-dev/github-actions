@@ -104,7 +104,7 @@ jobs:
           for package in ./artifacts/*.nupkg; do
             dotnet nuget push "$package" --source "${{ github.repository_owner }}-nuget" --api-key "${{ secrets.ARTIFACTORY_USERNAME }}:${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}"
           done
-      
+
       - name: Docker meta
         if: github.ref_name == 'main'
         id: meta
@@ -115,7 +115,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
+            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
             type=schedule,pattern=latest
             type=sha
 
@@ -133,37 +133,71 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
-      - name: Bump pre-release version
+      - name: Get TAG version
         if: github.ref_name == 'main'
-        id: increment_prerelease_version
+        id: TAG
         run: |
-          VERSION_PREFIX=$(xmlstarlet sel -t -v "//VersionPrefix" Directory.Build.props)
-          VERSION_SUFFIX=$(xmlstarlet sel -t -v "//VersionSuffix" Directory.Build.props)
-          echo "VERSION_SUFFIX=${VERSION_SUFFIX}"
+          version=$(xmlstarlet sel -t -v "//VersionPrefix" Directory.Build.props)
+          echo "release_version=$version"
+          echo "release_version=$version" >> $GITHUB_OUTPUT
+          echo "tag_name=v$version"
+          echo "tag_name=v$version" >> $GITHUB_OUTPUT
 
-          IFS='.' read -ra VERSION_PARTS <<< "${VERSION_SUFFIX}"
-          STAGE=${VERSION_PARTS[0]}
-          REVISION=${VERSION_PARTS[1]}
+      - name: Commit & Tag Version
+        if: github.ref_name == 'main'
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git tag -a ${{ steps.TAG.outputs.tag_name }} -m "Release ${{ steps.TAG.outputs.value }}"
+          git push origin ${{ steps.TAG.outputs.tag_name }}
 
-          REVISION=$((REVISION + 1))
+      - name: Bump release version
+        if: github.ref_name == 'main'
+        id: increment_version
+        run: |
+          # Split version into components
+          IFS='.' read -ra VERSION_PARTS <<< "${{ steps.TAG.outputs.release_version }}"
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
+
+          # Determine which part to increment based on input
+          if [ "${{ github.event.inputs.release_type }}" == "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "${{ github.event.inputs.release_type }}" == "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
 
           # Construct the new version
-          NEW_VERSION_SUFFIX="$STAGE.$REVISION"
-          echo "NEW_VERSION_SUFFIX: $NEW_VERSION_SUFFIX"
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          # Reset pre-release version to 'beta.1'
+          NEW_VERSION_SUFFIX="beta.1"
 
-          xmlstarlet ed --inplace -u "//VersionSuffix" -v "${NEW_VERSION_SUFFIX}" Directory.Build.props
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+          xmlstarlet ed --inplace -u "//VersionPrefix" -v "${NEW_VERSION}" Directory.Build.props
           cat Directory.Build.props  # Print to verify the update
-        
+
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add .
-          git commit -am "[skip ci] Bump pre-release version ${VERSION_PREFIX}-${NEW_VERSION_SUFFIX}"
+          git commit -am "[skip ci] Bump version ${NEW_VERSION}"
           git push origin main
 
       - name: Record Summary
         run: |
+          echo "### Tag Name" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.TAG.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
           echo "### Docker Image Digest" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.docker_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Release Version" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.TAG.outputs.release_version }}" >> $GITHUB_STEP_SUMMARY
       
   trigger-cd:
     name: Trigger CD
