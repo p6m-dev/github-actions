@@ -175,8 +175,6 @@ jobs:
 
           # Construct the new version
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-          # Reset pre-release version to 'beta.1'
-          NEW_VERSION_SUFFIX="beta.1"
 
           echo "New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT

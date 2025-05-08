@@ -178,22 +178,17 @@ jobs:
 
           # Construct the new version
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-          # Reset pre-release version to 'beta.1'
-          NEW_VERSION_SUFFIX="beta.1"
 
           echo "New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "NEW_VERSION_SUFFIX: $NEW_VERSION_SUFFIX"
-          echo "NEW_VERSION_SUFFIX=$NEW_VERSION_SUFFIX" >> $GITHUB_OUTPUT
-
+         
           xmlstarlet ed --inplace -u "//VersionPrefix" -v "${NEW_VERSION}" Directory.Build.props
-          xmlstarlet ed --inplace -u "//VersionSuffix" -v "${NEW_VERSION_SUFFIX}" Directory.Build.props
           cat Directory.Build.props  # Print to verify the update
 
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add .
-          git commit -am "[skip ci] Bump version ${NEW_VERSION}-${NEW_VERSION_SUFFIX}"
+          git commit -am "[skip ci] Bump version ${NEW_VERSION}"
           git push origin main
 
       - name: Record Summary
