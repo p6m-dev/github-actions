@@ -93,13 +93,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Cargo Repository
-        run: |
-          cargo login --registry ${{ inputs.CARGO_REGISTRY_ALIAS }} 'Bearer ${{ secrets.CARGO_TOKEN }}'
-          cat > ~/.cargo/config.toml <<CONFIG
-          [registry]
-          global-credential-providers = ["cargo:token"]
-          CONFIG
+      - name: Login to Cargo Registry
+        uses: p6m-actions/rust-registry-login@v1
+        with:
+          cargo-tokens: |
+            ${{ inputs.CARGO_REGISTRY_ALIAS }}=${{ secrets.CARGO_TOKEN }}
       
       - name: Cargo build Release
         run: |
@@ -195,13 +193,11 @@ jobs:
         with:
           shared-key: build
 
-      - name: Login to Cargo Repository
-        run: |
-          cargo login --registry ${{ inputs.CARGO_REGISTRY_ALIAS }} 'Bearer ${{ secrets.CARGO_TOKEN }}'
-          cat > ~/.cargo/config.toml <<CONFIG
-          [registry]
-          global-credential-providers = ["cargo:token"]
-          CONFIG
+      - name: Login to Cargo Registry
+        uses: p6m-actions/rust-registry-login@v1
+        with:
+          cargo-tokens: |
+            ${{ inputs.CARGO_REGISTRY_ALIAS }}=${{ secrets.CARGO_TOKEN }}
 
       - name: Install cargo-release
         uses: baptiste0928/cargo-install@v3
@@ -244,13 +240,11 @@ jobs:
           crate: cargo-release
           version: 0.25.18
 
-      - name: Login to Cargo Repository
-        run: |
-          cargo login --registry ${{ inputs.CARGO_REGISTRY_ALIAS }} 'Bearer ${{ secrets.CARGO_TOKEN }}'
-          cat > ~/.cargo/config.toml <<CONFIG
-          [registry]
-          global-credential-providers = ["cargo:token"]
-          CONFIG
+      - name: Login to Cargo Registry
+        uses: p6m-actions/rust-registry-login@v1
+        with:
+          cargo-tokens: |
+            ${{ inputs.CARGO_REGISTRY_ALIAS }}=${{ secrets.CARGO_TOKEN }}
 
       - name: Bump Version
         run: cargo release version patch -x --no-confirm --workspace
