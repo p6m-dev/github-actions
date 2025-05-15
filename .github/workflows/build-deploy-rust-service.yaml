@@ -264,14 +264,13 @@ jobs:
 
     steps:
       - name: Trigger Update Image Digest
-        run: |
-          echo ${{ github.ref }}
-          echo ${{ needs.build-publish-image.outputs.digest }}
-          echo ${{ vars.PLATFORM_DISPATCH_URL }}
-          curl -X POST \
-            -H "Accept: application/vnd.github.everest-preview+json" \
-            -H "Authorization: token ${{ secrets.UPDATE_MANIFEST_TOKEN }}" \
-            ${{ vars.PLATFORM_DISPATCH_URL }} \
-            --fail-with-body \
-            -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"dev\", \"digest\": \"${{ needs.build-publish-image.outputs.digest }}\"}}"
+        uses: p6m-actions/platform-application-manifest-dispatch@v1.1
+        with:
+          repository: ${{ github.repository }}
+          image-name: ${{ inputs.DOCKER_IMAGE_NAME}}
+          directory-name: "$(basename ${GITHUB_REPOSITORY})"
+          environment: "dev"
+          digest: ${{ needs.build-publish-image.outputs.digest }}
+          update-manifest-token: ${{ secrets.UPDATE_MANIFEST_TOKEN }}
+          platform-dispatch-url: ${{ vars.PLATFORM_DISPATCH_URL }}
       
