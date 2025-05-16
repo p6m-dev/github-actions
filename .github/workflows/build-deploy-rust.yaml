@@ -103,7 +103,7 @@ jobs:
           images: |
             ${{ env.DOCKER_REGISTRY }}/${{ inputs.DOCKER_IMAGE_NAME }}
           tags: |
-            type=sha,suffix=${{ matrix-docker_tag }}
+            type=sha,suffix=${{ matrix.docker_tag }}
 
       - name: Build and push
         uses: docker/build-push-action@v4
