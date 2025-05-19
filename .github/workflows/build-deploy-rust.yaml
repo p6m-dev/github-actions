@@ -157,6 +157,7 @@ jobs:
             type=raw,value=${{ needs.steps.outputs.VERSION }},enable={{is_default_branch}}
             type=sha
 
+      # Setting up the imagetools args in a separate step, lets us leverage Github's `env` context to print out the command that will be run.
       - name: Setup args for Buildx imagetools
         run: |
           echo "IMAGETOOLS_TAGS=$(echo ${DOCKER_METADATA_OUTPUT_TAGS} | xargs -n1 printf '\-t %s ')" >> $GITHUB_ENV
@@ -164,6 +165,7 @@ jobs:
 
       - name: Docker Build/Push Multi-Arch Image
         run: |
+          # `docker manifest create` has been deprecated and replaced by `docker buildx imagetools`.
           docker buildx imagetools create ${{ env.IMAGETOOLS_TAGS }} ${{ env.IMAGETOOLS_SOURCES }}
 
   bump-version:
