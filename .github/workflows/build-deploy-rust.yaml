@@ -81,7 +81,7 @@ jobs:
             arch: amd64
           '
           echo 'matrix<<EOF' >> $GITHUB_OUTPUT
-          echo "$BASE_MATRIX" | yq --output-format json --no-colors --indent 0 '. | filter(.platform as $p | "${{ inputs.PLATFORMS_TO_EXCLUDE }}" | split(" ") | any_c(. == $p) | not)' >> $GITHUB_OUTPUT
+          echo "$BASE_MATRIX" | yq --output-format json --no-colors --indent 0 '. | filter(.platform as $p | "${{ inputs.PLATFORMS_TO_EXCLUDE }}" | split("\n") | any_c(. == $p) | not)' >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
 
