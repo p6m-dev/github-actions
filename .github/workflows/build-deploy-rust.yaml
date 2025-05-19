@@ -113,8 +113,7 @@ jobs:
       - name: Export digest
         run: |
           mkdir -p ${RUNNER_TEMP}/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "${RUNNER_TEMP}/digests/${digest}"
+          echo "${{ steps.build.outputs.digest }}" > ${RUNNER_TEMP}/digests/digest-${{ matrix.arch }}.txt
 
       - name: Upload Image Digest
         uses: actions/upload-artifact@v4
