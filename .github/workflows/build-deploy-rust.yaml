@@ -75,7 +75,6 @@ jobs:
           echo 'excludes<<EOF' >> $GITHUB_OUTPUT
           echo "$(echo '${{ inputs.PLATFORMS_TO_EXCLUDE }}' | yq --output-format json --no-colors --indent 0 '[] + split("'" "'")')" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
-          cat $GITHUB_OUTPUT
 
   build:
     needs:
@@ -90,7 +89,7 @@ jobs:
           - runner: ubuntu-latest
             platform: linux/amd64
             arch: amd64
-        exclude: ${{ fromJSON(needs.matrix.outputs.exclude) }}
+        exclude: ${{ fromJSON(needs.matrix.outputs.excludes) }}
 
     name: Docker Build (${{ matrix.platform }})
     outputs:
