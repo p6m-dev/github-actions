@@ -90,7 +90,6 @@ jobs:
         exclude: ${{ fromJSON(needs.matrix.outputs.exclude) }}
 
     name: Docker Build (${{ matrix.platform }})
-    if: ${{ matrix.enabled }}
     outputs:
       VERSION: ${{ steps.pkg-version.outputs.VERSION }}
 
