@@ -60,14 +60,17 @@ jobs:
     strategy:
       matrix:
         include:
-          # - runner: ubuntu-24.04-arm
-          #   platform: linux/arm64
-          #   arch: arm64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            arch: arm64
+            enabled: false
           - runner: ubuntu-latest
             platform: linux/amd64
             arch: amd64
+            enabled: true
 
     name: Docker Build (${{ matrix.platform }})
+    if: ${{ matrix.enabled }}
     outputs:
       VERSION: ${{ steps.pkg-version.outputs.VERSION }}
 
