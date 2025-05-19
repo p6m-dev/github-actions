@@ -49,6 +49,11 @@ on:
         type: boolean
         required: false
         default: true
+      PLATFORMS_TO_EXCLUDE:
+        type: string
+        required: false
+        default: |
+          linux/arm64
 
 env:
   CARGO_TERM_COLOR: always
@@ -56,18 +61,33 @@ env:
   RUST_TOOLCHAIN: stable
 
 jobs:
+  matrix:
+    name: Generate Matrix Parameters
+    runs-on: ubuntu-latest
+
+    outputs:
+      excludes: ${{ steps.excludes.outputs.excludes }}
+
+    steps:
+      - name: Excludes
+        id: excludes
+        run: |
+          echo excludes=$(echo '${{ inputs.platforms }}' | yq --output-format json --no-colors --indent 0 'split(" ")') >> $GITHUB_OUTPUT
+
   build:
+    needs:
+      - matrix
+
     strategy:
       matrix:
         include:
           - runner: ubuntu-24.04-arm
             platform: linux/arm64
             arch: arm64
-            enabled: false
           - runner: ubuntu-latest
             platform: linux/amd64
             arch: amd64
-            enabled: true
+        exclude: ${{ fromJSON(needs.matrix.outputs.exclude) }}
 
     name: Docker Build (${{ matrix.platform }})
     if: ${{ matrix.enabled }}
