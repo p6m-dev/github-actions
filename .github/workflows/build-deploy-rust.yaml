@@ -66,14 +66,23 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      excludes: ${{ steps.excludes.outputs.excludes }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
 
     steps:
       - name: Excludes
-        id: excludes
+        id: matrix
         run: |
-          echo 'excludes<<EOF' >> $GITHUB_OUTPUT
-          echo "$(echo '${{ inputs.PLATFORMS_TO_EXCLUDE }}' | yq --output-format json --no-colors --indent 0 '[] + split("'" "'") | map("platform": .)')" >> $GITHUB_OUTPUT
+          BASE_MATRIX='
+          include:
+            - runner: ubuntu-24.04-arm
+              platform: linux/arm64
+              arch: arm64
+            - runner: ubuntu-latest
+              platform: linux/amd64
+              arch: amd64
+          '
+          echo 'matrix<<EOF' >> $GITHUB_OUTPUT
+          echo "$BASE_MATRIX" | yq --output-format json --no-colors --indent 0 '.include | filter(.platform as $p | '${{ inputs.PLATFORMS_TO_EXCLUDE }}' | split(" ") | any_c(. == $p) | not) | {"include": .}' | tee $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
   build:
@@ -82,14 +91,7 @@ jobs:
 
     strategy:
       matrix:
-        include:
-          - runner: ubuntu-24.04-arm
-            platform: linux/arm64
-            arch: arm64
-          - runner: ubuntu-latest
-            platform: linux/amd64
-            arch: amd64
-        exclude: ${{ fromJSON(needs.matrix.outputs.excludes) }}
+        include: ${{ fromJSON(needs.matrix.outputs.matrix) }}
 
     name: Docker Build (${{ matrix.platform }})
     outputs:
