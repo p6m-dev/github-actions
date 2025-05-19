@@ -72,7 +72,7 @@ jobs:
       - name: Excludes
         id: excludes
         run: |
-          echo excludes=$(echo '${{ inputs.platforms }}' | yq --output-format json --no-colors --indent 0 'split(" ")') >> $GITHUB_OUTPUT
+          echo excludes=$(echo '${{ inputs.PLATFORMS_TO_EXCLUDE }}' | yq --output-format json --no-colors --indent 0 '[] + split(" ")') >> $GITHUB_OUTPUT
 
   build:
     needs:
