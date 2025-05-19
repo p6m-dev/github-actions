@@ -134,7 +134,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ${{ runner.temp }}/digests
-          pattern: digets-*
+          pattern: digests-*
           merge-multiple: true
 
       - name: Login to Docker Repo
@@ -157,13 +157,12 @@ jobs:
             type=raw,value=${{ needs.steps.outputs.VERSION }},enable={{is_default_branch}}
             type=sha
 
-      # TODO: Use `docker buildx imagetools create` to create the manifest list. `docker manifest create` is deprecated.
-      # - name: Publish Docker Manifest Lists
-      #   run: |
-      #     for image_name in ${{ steps.meta.outputs.tags }}; do
-      #       docker manifest create $image_name ${{ needs.build.imageid-amd64 }} ${{ needs.build.imageid-arm64 }}
-      #       docker manifest push $image_name
-      #     done
+      - name: Docker Build/Push Multi-Arch Image
+        run: |
+          IMAGE_TAGS='${{ steps.meta.outputs.tags }}'
+          docker buildx imagetools create \
+          $(echo $IMAGE_TAGS | xargs -n1 -I% echo -n '-t % ') \
+          $(cat ${RUNNER_IMAGE}/* | xargs -n1 -I% echo -n '${{ env.DOCKER_REGISTRY }}/${{ inputs.DOCKER_IMAGE_NAME }}@% ')
 
   bump-version:
     if: ${{ inputs.DO_VERSION_BUMP && github.ref_name == 'main' }}
