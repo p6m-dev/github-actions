@@ -70,9 +70,15 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+      - name: Login to Cargo Registry
+        uses: p6m-actions/rust-registry-login@v1
+        with:
+          cargo-tokens: ${{ secrets.CARGO_TOKENS }}
       - id: pkg-version
         name: Get Package Version
-        run: echo "VERSION=$(cargo xtask pkg-version)" >> $GITHUB_OUTPUT
+        run: |
+          set -o pipefail
+          echo "VERSION=$(cargo xtask pkg-version)" >> $GITHUB_OUTPUT
 
   build:
     needs:

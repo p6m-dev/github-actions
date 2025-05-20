@@ -74,9 +74,16 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+      - name: Login to Cargo Registry
+        uses: p6m-actions/rust-registry-login@v1
+        with:
+          cargo-tokens: |
+            ${{ inputs.CARGO_REGISTRY_ALIAS }}=${{ secrets.CARGO_TOKEN }}
       - id: pkg-version
         name: Get Package Version
-        run: echo "VERSION=$(cargo xtask pkg-version)" >> $GITHUB_OUTPUT
+        run: |
+          set -o pipefail
+          echo "VERSION=$(cargo xtask pkg-version)" >> $GITHUB_OUTPUT
 
   build:
     needs:
@@ -96,7 +103,7 @@ jobs:
         type=raw,value=latest,enable={{is_default_branch}}
         type=raw,value=${{ needs.current_version.outputs.VERSION }},enable={{is_default_branch}}
         type=sha
-      linux-arm-runner: ${{ inputs.LINUX_ARM_RUNNER }}
+      linux-arm-runner: ubuntu-24.04-arm-provisioned
     secrets:
       username: ${{ secrets.DOCKER_USERNAME }}
       password: ${{ secrets.DOCKER_PASSWORD }}
