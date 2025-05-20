@@ -79,7 +79,7 @@ jobs:
 
     uses: p6m-dev/github-actions/.github/workflows/build-deploy-docker.yaml@feat/rust-crossless
     with:
-      registry: ${{ env.DOCKER_REGISTRY }}
+      registry: ${{ inputs.DOCKER_REGISTRY || vars.ARTIFACTORY_HOSTNAME}}
       image-name: ${{ inputs.DOCKER_IMAGE_NAME }}
       context: ${{ inputs.DOCKER_CONTEXT }}
       dockerfile: ${{ inputs.DOCKERFILE }}
