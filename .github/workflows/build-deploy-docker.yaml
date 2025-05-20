@@ -12,7 +12,15 @@ on:
       password:
         description: The password to use to authenticate with the Docker registry.
         required: true
-      # TODO: Add secrets, secret-envvars, secret-files (i.e. different secret mounting options for docker buildx)
+      secrets:
+        description: Raw secrets to pass to docker build as environment variables in key=value format (one per line).
+        required: false
+      secret-envs:
+        description: Environment variables to passthrough to the docker build in key=envname format (one per line).
+        required: false
+      secret-files:
+        description: Files to mount from the host machine into the docker build in key=filepath format (one per line).
+        required: false
     inputs:
       registry:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
@@ -89,6 +97,9 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
           build-args: ${{ inputs.build-args }}
+          secrets: ${{ inputs.secrets }}
+          secret-envs: ${{ inputs.secret-envs }}
+          secret-files: ${{ inputs.secret-files }}
           outputs: |
             type=registry,name=${{ env.DOCKER_REGISTRY }}/${{ inputs.image-name }},push-by-digest=true,name-canonical=true
 
@@ -140,8 +151,8 @@ jobs:
           echo "IMAGETOOLS_TAGS=$(echo ${DOCKER_METADATA_OUTPUT_TAGS} | xargs -n1 printf '\-t %s ')" >> $GITHUB_ENV
           echo "IMAGETOOLS_SOURCES=$(cat ${RUNNER_TEMP}/digests/* | xargs -n1 printf '${{ env.DOCKER_REGISTRY }}/${{ inputs.DOCKER_IMAGE_NAME }}@%s ')" >> $GITHUB_ENV
 
+      # `docker manifest create` has been deprecated and replaced by `docker buildx imagetools`.
       - name: Docker Build/Push Multi-Arch Image
         run: |
-          # `docker manifest create` has been deprecated and replaced by `docker buildx imagetools`.
           docker buildx imagetools create ${{ env.IMAGETOOLS_TAGS }} ${{ env.IMAGETOOLS_SOURCES }}
 
