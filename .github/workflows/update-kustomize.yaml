@@ -49,7 +49,7 @@ jobs:
           if [ "${{ github.event.client_payload.registry}}" = "ecr" ]; then
             kustomize edit set image ${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}=${{ github.event.client_payload.account_id}}.dkr.ecr.${{ github.event.client_payload.region }}.amazonaws.com/${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}@${{ github.event.client_payload.digest }}
           else
-            kustomize edit set image ${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}=${{ env.ARTIFACTORY_HOSTNAME }}/${{github.repository_owner}}-docker-local/applications/${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}@${{ github.event.client_payload.digest }}
+            kustomize edit set image ${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}=${{ env.ARTIFACTORY_HOSTNAME }}/${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}@${{ github.event.client_payload.digest }}
           fi
           kustomize edit set annotation meta.p6m.dev/github-repository:${{github.event.client_payload.repository}}
           git add .
