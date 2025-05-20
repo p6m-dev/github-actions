@@ -2,11 +2,13 @@ name: Build & Deploy Multi-Arch Docker Image
 
 on:
   workflow_call:
-    # TODO: Add digests for each architecture to outputs.
-    # TODO: Add digest for final image
     outputs:
       json:
         value: ${{ jobs.merge.outputs.json }}
+      digests:
+        value: ${{ jobs.merge.outputs.digests }}
+      first_digest:
+        value: ${{ jobs.merge.outputs.first_digest }}
     secrets:
       username:
         description: The username to use to authenticate with the Docker registry.
@@ -127,6 +129,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       json: ${{ steps.imagetools.outputs.json }}
+      digests: ${{ steps.fanciness.outputs.digests }}
+      first_digest: ${{ steps.fanciness.outputs.first_digest }}
 
     steps:
       - name: Download Image Digests
@@ -167,4 +171,10 @@ jobs:
           echo 'json<<JSON' >> $GITHUB_OUTPUT
           cat output.json >> $GITHUB_OUTPUT
           echo 'JSON' >> $GITHUB_OUTPUT
+
+      - name: Fancy Outputs
+        id: fanciness
+        run: |
+          echo "digests=$(echo '${{ steps.imagetools.outputs.json }}' | jq --exit-status --compact-output --monochrome-output 'map(.digest)')" >> $GITHUB_OUTPUT
+          echo "first_digest=$(echo '${{ steps.imagetools.outputs.json }}' | jq --exit-status --raw-output 'map(.digest) | .[0]')" >> $GITHUB_OUTPUT
 
