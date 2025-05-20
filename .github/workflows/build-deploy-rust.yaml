@@ -91,8 +91,10 @@ jobs:
         type=raw,value=latest,enable={{is_default_branch}}
         type=raw,value=${{ needs.current_version.outputs.VERSION }},enable={{is_default_branch}}
         type=sha
-
       linux-arm-runner: ${{ inputs.LINUX_ARM_RUNNER }}
+    secrets:
+      username: ${{ secrets.DOCKER_USERNAME }}
+      password: ${{ secrets.DOCKER_PASSWORD }}
 
   bump-version:
     if: ${{ inputs.DO_VERSION_BUMP && github.ref_name == 'main' }}
