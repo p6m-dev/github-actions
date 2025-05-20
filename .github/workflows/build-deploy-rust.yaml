@@ -75,18 +75,6 @@ jobs:
           cache-key: ${{ env.RUST_TOOLCHAIN }}-${{ matrix.target }}-${{ inputs.MODE }}
           rustflags: ""
 
-      - name: Cache rustup
-        uses: actions/cache@v4
-        with:
-          path: ~/.rustup
-          key: ${{ env.RUST_TOOLCHAIN }}-${{ runner.os }}-${{ matrix.target }}-${{ inputs.MODE }}-rustup
-          
-      - name: Cache xargo
-        uses: actions/cache@v4
-        with:
-          path: ~/.xargo
-          key: ${{ env.RUST_TOOLCHAIN }}-${{ runner.os }}-${{ matrix.target }}-${{ inputs.MODE }}-xargo
-
       - name: Install rust cross
         uses: baptiste0928/cargo-install@v3
         with:
