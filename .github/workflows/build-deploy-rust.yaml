@@ -110,7 +110,7 @@ jobs:
           file: ${{ inputs.DOCKERFILE }}
           platforms: ${{ matrix.platform }}
           cache-from: type=gha
-          cache-to: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             MODE=${{ inputs.MODE }}
           outputs: |
