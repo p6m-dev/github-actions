@@ -21,7 +21,7 @@ jobs:
     concurrency:
       # cancel-in-progress: true will pre-emptively cancel old jobs if a new update comes in
       # FYI: push/rebase below retries for 1 minute allowing for concurrent runs of this
-      group: "${{ github.event.client_payload.directory_name }}-${{ github.event.client_payload.environment_dir }}"
+      group: "${{ github.event.client_payload.directory_name }}-${{ github.event.client_payload.environment_dir || github.event.client_payload.environment }}"
       cancel-in-progress: true
     steps:
       - name: Checkout code
@@ -32,18 +32,18 @@ jobs:
       - name: Update image digest for Managed Clusters
         run: |
           export RUNTIME_DIRECTORY="kubernetes"
-          mkdir -p ${{ github.workspace }}/${RUNTIME_DIRECTORY}/${{ github.event.client_payload.directory_name }}/${{ github.event.client_payload.environment_dir }}
+          mkdir -p ${{ github.workspace }}/${RUNTIME_DIRECTORY}/${{ github.event.client_payload.directory_name }}/${{ github.event.client_payload.environment_dir || github.event.client_payload.environment }}
           curl -s -o install_kustomize.sh "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
           chmod +x ./install_kustomize.sh; 
           ./install_kustomize.sh 5.1.0
           sudo mv kustomize /usr/local/bin/kustomize
-          cd ${{ github.workspace }}/${RUNTIME_DIRECTORY}/${{ github.event.client_payload.directory_name }}/${{ github.event.client_payload.environment_dir }}
+          cd ${{ github.workspace }}/${RUNTIME_DIRECTORY}/${{ github.event.client_payload.directory_name }}/${{ github.event.client_payload.environment_dir || github.event.client_payload.environment }}
           if [ ! -f kustomization.yaml ]; then cat > kustomization.yaml << EndOfMessage
           apiVersion: kustomize.config.k8s.io/v1beta1
           kind: Kustomization
 
           resources:
-            - https://github.com/${{github.repository_owner}}/${{ github.event.client_payload.resource_directory_name || github.event.client_payload.directory_name }}/.platform/kubernetes/${{ github.event.client_payload.environment_dir }}
+            - https://github.com/${{github.repository_owner}}/${{ github.event.client_payload.resource_directory_name || github.event.client_payload.directory_name }}/.platform/kubernetes/${{ github.event.client_payload.environment_dir || github.event.client_payload.environment }}
           EndOfMessage
           fi
           if [ "${{ github.event.client_payload.registry}}" = "ecr" ]; then
@@ -80,7 +80,7 @@ jobs:
       #   uses: fjogeleit/yaml-update-action@main
       #   with:
       #     valueFile: 'run-studio/${{ github.event.client_payload.directory_name }}/catalog-info/catalog-info.yaml'
-      #     propertyPath: "metadata.${{ github.event.client_payload.environment_dir }}Version"
+      #     propertyPath: "metadata.${{ github.event.client_payload.environment_dir || github.event.client_payload.environment }}Version"
       #     value: ${{ github.event.client_payload.tag || github.event.client_payload.digest }}
       #     commitChange: true
       #     createPR: false
