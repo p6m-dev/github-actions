@@ -109,8 +109,8 @@ jobs:
           context: ${{ inputs.DOCKER_CONTEXT }}
           file: ${{ inputs.DOCKERFILE }}
           platforms: ${{ matrix.platform }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
           build-args: |
             MODE=${{ inputs.MODE }}
           outputs: |
