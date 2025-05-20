@@ -4,7 +4,7 @@ on:
   workflow_call:
     outputs:
       VERSION:
-        value: ${{ jobs.build.outputs.VERSION }}
+        value: ${{ jobs.current_version.outputs.VERSION }}
     secrets:
       DOCKER_USERNAME:
         description: The username to use to authenticate with the Docker registry.
@@ -61,123 +61,44 @@ env:
   RUST_TOOLCHAIN: stable
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - runner: ${{ inputs.LINUX_ARM_RUNNER }}
-            platform: linux/arm64
-            arch: arm64
-          - runner: ubuntu-latest
-            platform: linux/amd64
-            arch: amd64
-          
-
-    name: Docker Build (${{ matrix.platform }})
+  current_version:
+    name: Get Current Version
     outputs:
       VERSION: ${{ steps.pkg-version.outputs.VERSION }}
 
-    runs-on: ${{ matrix.runner }}
-
+    runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Get Package Version
-        id: pkg-version
+      - id: pkg-version
+        name: Get Package Version
         run: echo "VERSION=$(cargo xtask pkg-version)" >> $GITHUB_OUTPUT
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # Disable Auth for MVP
-      # - name: Cargo Registry Login
-      #   uses: p6m-dev/github-actions/cargo-registry-login@main
-      #   with:
-      #     cargo-tokens: ${{ secrets.CARGO_TOKENS }}
-
-      - name: Login to Docker Repo
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push by Digest
-        id: build
-        uses: docker/build-push-action@v4
-        with:
-          context: ${{ inputs.DOCKER_CONTEXT }}
-          file: ${{ inputs.DOCKERFILE }}
-          platforms: ${{ matrix.platform }}
-          cache-from: type=gha,scope=${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
-          build-args: |
-            MODE=${{ inputs.MODE }}
-          outputs: |
-            type=registry,name=${{ env.DOCKER_REGISTRY }}/${{ inputs.DOCKER_IMAGE_NAME }},push-by-digest=true,name-canonical=true
-
-      - name: Export digest
-        run: |
-          mkdir -p ${RUNNER_TEMP}/digests
-          echo "${{ steps.build.outputs.digest }}" > ${RUNNER_TEMP}/digests/digest-${{ matrix.arch }}.txt
-
-      - name: Upload Image Digest
-        uses: actions/upload-artifact@v4
-        with:
-          name: digests-${{ matrix.arch }}
-          path: ${{ runner.temp }}/digests/*
-          if-no-files-found: error
-          retention-days: 1
-
-  merge:
-    name: Create and Push Docker Manifest Lists
-    runs-on: ubuntu-latest
+  build:
     needs:
-      - build
+      - current_version
 
-    steps:
-      - name: Download Image Digests
-        uses: actions/download-artifact@v4
-        with:
-          path: ${{ runner.temp }}/digests
-          pattern: digests-*
-          merge-multiple: true
+    uses: p6m-dev/github-actions/.github/workflows/build-deploy-docker.yaml@feat/rust-crossless
+    with:
+      registry: ${{ env.DOCKER_REGISTRY }}
+      image-name: ${{ inputs.DOCKER_IMAGE_NAME }}
+      context: ${{ inputs.DOCKER_CONTEXT }}
+      dockerfile: ${{ inputs.DOCKERFILE }}
+      build-args: |
+        MODE=${{ inputs.MODE }}
+      tags: |
+        type=ref,event=branch
+        type=ref,event=pr
+        type=raw,value=latest,enable={{is_default_branch}}
+        type=raw,value=${{ needs.current_version.outputs.VERSION }},enable={{is_default_branch}}
+        type=sha
 
-      - name: Login to Docker Repo
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            ${{ env.DOCKER_REGISTRY }}/${{ inputs.DOCKER_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ needs.steps.outputs.VERSION }},enable={{is_default_branch}}
-            type=sha
-
-      # Setting up the imagetools args in a separate step, lets us leverage Github's `env` context to print out the command that will be run.
-      - name: Setup args for Buildx imagetools
-        run: |
-          echo "IMAGETOOLS_TAGS=$(echo ${DOCKER_METADATA_OUTPUT_TAGS} | xargs -n1 printf '\-t %s ')" >> $GITHUB_ENV
-          echo "IMAGETOOLS_SOURCES=$(cat ${RUNNER_TEMP}/digests/* | xargs -n1 printf '${{ env.DOCKER_REGISTRY }}/${{ inputs.DOCKER_IMAGE_NAME }}@%s ')" >> $GITHUB_ENV
-
-      - name: Docker Build/Push Multi-Arch Image
-        run: |
-          # `docker manifest create` has been deprecated and replaced by `docker buildx imagetools`.
-          docker buildx imagetools create ${{ env.IMAGETOOLS_TAGS }} ${{ env.IMAGETOOLS_SOURCES }}
+      linux-arm-runner: ${{ inputs.LINUX_ARM_RUNNER }}
 
   bump-version:
     if: ${{ inputs.DO_VERSION_BUMP && github.ref_name == 'main' }}
     runs-on: ubuntu-latest
     needs:
+      - current_version
       - build
 
     steps:
@@ -186,8 +107,8 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git tag -a ${{ needs.build.outputs.VERSION }} -m "Release ${{ needs.build.outputs.VERSION }}"
-          git push origin ${{ needs.build.outputs.VERSION }}
+          git tag -a ${{ needs.current_version.outputs.VERSION }} -m "Release ${{ needs.current_version.outputs.VERSION }}"
+          git push origin ${{ needs.current_version.outputs.VERSION }}
 
       - name: Install cargo-release
         uses: baptiste0928/cargo-install@v3
