@@ -154,6 +154,7 @@ jobs:
       # `docker manifest create` has been deprecated and replaced by `docker buildx imagetools`.
       - name: Docker Build/Push Multi-Arch Image
         run: |
+          set -o pipefail # Ensure step fails if `docker` command fails.
           docker buildx imagetools create --progress rawjson ${{ env.IMAGETOOLS_TAGS }} ${{ env.IMAGETOOLS_SOURCES }} | tee output.json
           cat output.json
 
