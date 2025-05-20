@@ -89,6 +89,7 @@ jobs:
           password: ${{ secrets.password }}
 
       - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: ${{ inputs.context }}
@@ -149,7 +150,7 @@ jobs:
       - name: Setup args for Buildx imagetools
         run: |
           echo "IMAGETOOLS_TAGS=$(echo ${DOCKER_METADATA_OUTPUT_TAGS} | xargs -n1 printf '\-t %s ')" >> $GITHUB_ENV
-          echo "IMAGETOOLS_SOURCES=$(cat ${RUNNER_TEMP}/digests/* | xargs -n1 printf '${{ env.DOCKER_REGISTRY }}/${{ inputs.DOCKER_IMAGE_NAME }}@%s ')" >> $GITHUB_ENV
+          echo "IMAGETOOLS_SOURCES=$(cat ${RUNNER_TEMP}/digests/* | xargs -n1 printf '${{ env.DOCKER_REGISTRY }}/${{ inputs.image-name }}@%s ')" >> $GITHUB_ENV
 
       # `docker manifest create` has been deprecated and replaced by `docker buildx imagetools`.
       - name: Docker Build/Push Multi-Arch Image
