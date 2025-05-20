@@ -69,6 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - uses: actions/checkout@v4
       - id: pkg-version
         name: Get Package Version
         run: echo "VERSION=$(cargo xtask pkg-version)" >> $GITHUB_OUTPUT
@@ -95,6 +96,7 @@ jobs:
     secrets:
       username: ${{ secrets.DOCKER_USERNAME }}
       password: ${{ secrets.DOCKER_PASSWORD }}
+      secrets: ${{ secrets.CARGO_TOKENS }}
 
   bump-version:
     if: ${{ inputs.DO_VERSION_BUMP && github.ref_name == 'main' }}
