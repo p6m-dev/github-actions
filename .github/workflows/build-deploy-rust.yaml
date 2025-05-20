@@ -49,11 +49,11 @@ on:
         type: boolean
         required: false
         default: true
-      PLATFORMS_TO_EXCLUDE:
+      LINUX_ARM_RUNNER:
+        description: The `runs-on` tag for the linux arm64 runner.
         type: string
         required: false
-        default: |
-          linux/arm64
+        default: ubuntu-24.04-arm
 
 env:
   CARGO_TERM_COLOR: always
@@ -61,37 +61,17 @@ env:
   RUST_TOOLCHAIN: stable
 
 jobs:
-  matrix:
-    name: Generate Matrix Parameters
-    runs-on: ubuntu-latest
-
-    outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
-
-    steps:
-      - name: Excludes
-        id: matrix
-        run: |
-          BASE_MATRIX='
-          - runner: ubuntu-24.04-arm
+  build:
+    strategy:
+      matrix:
+        include:
+          - runner: ${{ inputs.LINUX_ARM_RUNNER }}
             platform: linux/arm64
             arch: arm64
           - runner: ubuntu-latest
             platform: linux/amd64
             arch: amd64
-          '
-          echo 'matrix<<EOF' >> $GITHUB_OUTPUT
-          echo "$BASE_MATRIX" | yq --output-format json --no-colors --indent 0 '. | filter(.platform as $p | "${{ inputs.PLATFORMS_TO_EXCLUDE }}" | split("\n") | any_c(. == $p) | not)' >> $GITHUB_OUTPUT
-          echo 'EOF' >> $GITHUB_OUTPUT
-          cat $GITHUB_OUTPUT
-
-  build:
-    needs:
-      - matrix
-
-    strategy:
-      matrix:
-        include: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+          
 
     name: Docker Build (${{ matrix.platform }})
     outputs:
