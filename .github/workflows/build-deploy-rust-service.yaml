@@ -5,7 +5,7 @@ on:
     outputs:
       digest:
         description: "The docker image digest for the built image"
-        value: ${{ jobs.build-publish-image.outputs.digest }}
+        value: ${{ jobs.build.outputs.digest }}
     secrets:
       DOCKER_USERNAME:
         description: The username to use to authenticate with the Docker registry.
@@ -65,117 +65,53 @@ env:
   DOCKER_REGISTRY: ${{ inputs.DOCKER_REGISTRY || vars.ARTIFACTORY_HOSTNAME}}
 
 jobs:
-  build:
+  current_version:
+    name: Get Current Version
     outputs:
-      version: ${{ steps.pkg-version.outputs.VERSION }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - target: aarch64-unknown-linux-gnu
-          - target: x86_64-unknown-linux-gnu
+      VERSION: ${{ steps.pkg-version.outputs.VERSION }}
 
+    runs-on: ubuntu-latest
+    
     steps:
       - uses: actions/checkout@v4
-
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.target }}-${{ inputs.MODE }}
-
-      - name: Install rust cross
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: cross
-          git: https://github.com/cross-rs/cross
-
-      # A dependency of rust-cross
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Cargo Registry
-        uses: p6m-actions/rust-registry-login@v1
-        with:
-          cargo-tokens: |
-            ${{ inputs.CARGO_REGISTRY_ALIAS }}=${{ secrets.CARGO_TOKEN }}
-      
-      - name: Cargo build Release
-        run: |
-          if [ "${{ inputs.MODE }}" = "release" ]; then
-            cross build --release --target=${{ matrix.target }}
-          else
-            cross build --target=${{ matrix.target }}
-          fi
-
-      - name: Get Package Version
-        id: pkg-version
+      - id: pkg-version
+        name: Get Package Version
         run: echo "VERSION=$(cargo xtask pkg-version)" >> $GITHUB_OUTPUT
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: targets-${{ matrix.target }}
-          path: ./target
-
-  build-publish-image:
-    outputs:
-      digest: ${{ steps.docker_build.outputs.digest }}
-    runs-on: ubuntu-latest
+  build:
     needs:
-      - build
+      - current_version
 
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          path: target
-          merge-multiple: true
-      
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Login to Docker Repo
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+    uses: p6m-dev/github-actions/.github/workflows/build-deploy-docker.yaml@main
+    with:
+      registry: ${{ inputs.DOCKER_REGISTRY || vars.ARTIFACTORY_HOSTNAME}}
+      image-name: ${{ inputs.DOCKER_IMAGE_NAME }}
+      context: ${{ inputs.DOCKER_CONTEXT }}
+      dockerfile: ${{ inputs.DOCKERFILE }}
+      build-args: |
+        MODE=${{ inputs.MODE }}
+      tags: |
+        type=ref,event=branch
+        type=ref,event=pr
+        type=raw,value=latest,enable={{is_default_branch}}
+        type=raw,value=${{ needs.current_version.outputs.VERSION }},enable={{is_default_branch}}
+        type=sha
+      linux-arm-runner: ${{ inputs.LINUX_ARM_RUNNER }}
+    secrets:
+      username: ${{ secrets.DOCKER_USERNAME }}
+      password: ${{ secrets.DOCKER_PASSWORD }}
+      secrets: |
+        ${{ inputs.CARGO_REGISTRY_ALIAS }}=${{ secrets.CARGO_TOKEN }}
 
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ${{ env.DOCKER_REGISTRY }}/${{ inputs.DOCKER_IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ needs.build.outputs.version }},enable={{is_default_branch}}
-            type=sha
-
-      - name: Build and push
-        id: docker_build
-        uses: docker/build-push-action@v6
-        with:
-          context: ${{ inputs.DOCKER_CONTEXT }}
-          file: ${{ inputs.DOCKERFILE }}
-          pull: true
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha
-          build-args: |
-            MODE=${{ inputs.MODE }}
-
-      - name: Record Summary
-        run: |
-          echo "Rust Application version: ${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "Docker image digest: ${{ steps.docker_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
-          echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
+      # TODO: Maybe add this summary back in if it becomes a problem
+      # - name: Record Summary
+      #   run: |
+      #     echo "Rust Application version: ${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+      #     echo "Docker image digest: ${{ steps.docker_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+      #     echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
+      #     echo "```" >> $GITHUB_STEP_SUMMARY
+      #     echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+      #     echo "```" >> $GITHUB_STEP_SUMMARY
 
   publish-crates:
     if: github.ref_name == 'main'
@@ -222,6 +158,7 @@ jobs:
     if: ${{ inputs.DO_VERSION_BUMP && github.ref_name == 'main' }}
     runs-on: ubuntu-latest
     needs:
+      - current_version
       - build
       - publish-crates
 
@@ -231,8 +168,8 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git tag -a ${{ needs.build.outputs.version }} -m "Release ${{ needs.build.outputs.version }}"
-          git push origin ${{ needs.build.outputs.version }}
+          git tag -a ${{ needs.current_version.outputs.VERSION }} -m "Release ${{ needs.current_version.outputs.VERSION }}"
+          git push origin ${{ needs.current_version.outputs.VERSION }}
 
       - name: Install cargo-release
         uses: baptiste0928/cargo-install@v3
@@ -260,18 +197,18 @@ jobs:
   trigger-cd:
     if: github.ref_name == 'main'
     runs-on: ubuntu-latest
-    needs: build-publish-image
+    needs: build
 
     steps:
       - name: Trigger Update Image Digest
         run: |
           echo ${{ github.ref }}
-          echo ${{ needs.build-publish-image.outputs.digest }}
+          echo ${{ needs.build.outputs.first_digest }}
           echo ${{ vars.PLATFORM_DISPATCH_URL }}
           curl -X POST \
             -H "Accept: application/vnd.github.everest-preview+json" \
             -H "Authorization: token ${{ secrets.UPDATE_MANIFEST_TOKEN }}" \
             ${{ vars.PLATFORM_DISPATCH_URL }} \
             --fail-with-body \
-            -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"dev\", \"digest\": \"${{ needs.build-publish-image.outputs.digest }}\"}}"
+            -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"dev\", \"digest\": \"${{ needs.build.outputs.first_digest }}\"}}"
       
