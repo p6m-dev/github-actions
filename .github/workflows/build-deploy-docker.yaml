@@ -3,8 +3,6 @@ name: Build & Deploy Multi-Arch Docker Image
 on:
   workflow_call:
     outputs:
-      json:
-        value: ${{ jobs.merge.outputs.json }}
       digests:
         value: ${{ jobs.merge.outputs.digests }}
       first_digest:
@@ -128,7 +126,6 @@ jobs:
     name: Create and Push Docker Manifest Lists
     runs-on: ubuntu-latest
     outputs:
-      json: ${{ steps.imagetools.outputs.json }}
       digests: ${{ steps.fanciness.outputs.digests }}
       first_digest: ${{ steps.fanciness.outputs.first_digest }}
 
