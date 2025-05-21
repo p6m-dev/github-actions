@@ -178,3 +178,11 @@ jobs:
           echo "digests=$(echo '${{ steps.imagetools.outputs.json }}' | jq --exit-status --compact-output --monochrome-output 'map(.digest)')" >> $GITHUB_OUTPUT
           echo "first_digest=$(echo '${{ steps.imagetools.outputs.json }}' | jq --exit-status --raw-output 'map(.digest) | .[0]')" >> $GITHUB_OUTPUT
 
+      - name: Summarize Job
+        run: |
+          echo "**Docker image digest:** ${{ steps.fanciness.outputs.first_digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
+
