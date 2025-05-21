@@ -111,16 +111,6 @@ jobs:
       secrets: |
         ${{ inputs.CARGO_REGISTRY_ALIAS }}=Bearer ${{ secrets.CARGO_TOKEN }}
 
-      # TODO: Maybe add this summary back in if it becomes a problem
-      # - name: Record Summary
-      #   run: |
-      #     echo "Rust Application version: ${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-      #     echo "Docker image digest: ${{ steps.docker_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
-      #     echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
-      #     echo "```" >> $GITHUB_STEP_SUMMARY
-      #     echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-      #     echo "```" >> $GITHUB_STEP_SUMMARY
-
   publish-crates:
     if: github.ref_name == 'main'
     # This job has been known to fail due to intermittent issues. We continue on error to avoid blocking the pipeline.
