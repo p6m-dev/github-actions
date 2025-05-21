@@ -108,7 +108,7 @@ jobs:
       username: ${{ secrets.DOCKER_USERNAME }}
       password: ${{ secrets.DOCKER_PASSWORD }}
       secrets: |
-        ${{ inputs.CARGO_REGISTRY_ALIAS }}=${{ secrets.CARGO_TOKEN }}
+        ${{ inputs.CARGO_REGISTRY_ALIAS }}=Bearer ${{ secrets.CARGO_TOKEN }}
 
       # TODO: Maybe add this summary back in if it becomes a problem
       # - name: Record Summary
