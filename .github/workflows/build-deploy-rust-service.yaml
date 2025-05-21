@@ -96,7 +96,8 @@ jobs:
       context: ${{ inputs.DOCKER_CONTEXT }}
       dockerfile: ${{ inputs.DOCKERFILE }}
       build-args: |
-        MODE=${{ inputs.MODE }}
+        PROFILE=${{ inputs.MODE }}
+        PROFILE_DIR=${{ inputs.MODE == 'dev' && 'debug' || 'release' }}
       tags: |
         type=ref,event=branch
         type=ref,event=pr
