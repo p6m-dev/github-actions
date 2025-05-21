@@ -166,12 +166,12 @@ jobs:
         id: imagetools
         run: |
           set -o pipefail # Ensure step fails if `docker` command fails.
-          docker buildx imagetools create --progress rawjson ${{ env.IMAGETOOLS_TAGS }} ${{ env.IMAGETOOLS_SOURCES }} | tee temp.json
-          cat temp.json
+          docker buildx imagetools create --progress rawjson ${{ env.IMAGETOOLS_TAGS }} ${{ env.IMAGETOOLS_SOURCES }} 2| tee temp.json
           cat temp.json | jq --exit-status --compact-output --monochrome-output --slurp 'map(select(. | has("vertexes"))) | map(.vertexes) | flatten | map({"digest": .digest, "name": (.name | ltrimstr("[internal] pushing "))})' > output.json
           echo 'json<<JSON' >> $GITHUB_OUTPUT
           cat output.json >> $GITHUB_OUTPUT
           echo 'JSON' >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
 
       - name: Fancy Outputs
         id: fanciness
