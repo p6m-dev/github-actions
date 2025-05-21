@@ -102,9 +102,9 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
           build-args: ${{ inputs.build-args }}
-          secrets: ${{ inputs.secrets }}
-          secret-envs: ${{ inputs.secret-envs }}
-          secret-files: ${{ inputs.secret-files }}
+          secrets: ${{ secrets.secrets }}
+          secret-envs: ${{ secrets.secret-envs }}
+          secret-files: ${{ secrets.secret-files }}
           outputs: |
             type=registry,name=${{ env.DOCKER_REGISTRY }}/${{ inputs.image-name }},push-by-digest=true,name-canonical=true
 
