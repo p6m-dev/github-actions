@@ -184,6 +184,6 @@ jobs:
           echo "**Docker image digest:** ${{ steps.fanciness.outputs.first_digest }}" >> $GITHUB_STEP_SUMMARY
           echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
           echo "```" >> $GITHUB_STEP_SUMMARY
-          echo '${{ steps.meta.outputs.tags }}' >> $GITHUB_STEP_SUMMARY
+          echo  "$DOCKER_METADATA_OUTPUT_TAGS" >> $GITHUB_STEP_SUMMARY
           echo "```" >> $GITHUB_STEP_SUMMARY
 
