@@ -169,7 +169,7 @@ jobs:
           docker buildx imagetools create --progress rawjson ${{ env.IMAGETOOLS_TAGS }} ${{ env.IMAGETOOLS_SOURCES }} | tee temp.json
           cat temp.json | jq --exit-status --compact-output --monochrome-output --slurp 'map(select(. | has("vertexes"))) | map(.vertexes) | flatten | map({"digest": .digest, "name": (.name | ltrimstr("[internal] pushing "))})' > output.json
           echo 'json<<JSON' >> $GITHUB_OUTPUT
-          cat output.json >> $GITHUB_OUTPUT
+          cat output.json | tee -a $GITHUB_OUTPUT
           echo 'JSON' >> $GITHUB_OUTPUT
 
       - name: Fancy Outputs
@@ -183,6 +183,6 @@ jobs:
           echo "**Docker image digest:** ${{ steps.fanciness.outputs.first_digest }}" >> $GITHUB_STEP_SUMMARY
           echo "### Docker Tags" >> $GITHUB_STEP_SUMMARY
           echo "```" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo '${{ steps.meta.outputs.tags }}' >> $GITHUB_STEP_SUMMARY
           echo "```" >> $GITHUB_STEP_SUMMARY
 
