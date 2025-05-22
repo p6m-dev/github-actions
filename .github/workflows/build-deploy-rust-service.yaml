@@ -84,6 +84,7 @@ jobs:
         run: |
           set -o pipefail
           echo "VERSION=$(cargo xtask pkg-version)" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION"
 
   build:
     needs:
