@@ -190,6 +190,9 @@ jobs:
           git config user.email github-actions@github.com
           git add .
           git commit -m "[skip ci] Bump Version"
+          # rebase to most resent changes
+          git fetch origin
+          git rebase origin/main
           git push
 
   trigger-cd:
