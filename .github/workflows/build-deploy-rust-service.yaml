@@ -5,7 +5,7 @@ on:
     outputs:
       digest:
         description: "The docker image digest for the built image"
-        value: ${{ jobs.build.outputs.digest }}
+        value: ${{ jobs.build.outputs.first_digest }}
     secrets:
       DOCKER_USERNAME:
         description: The username to use to authenticate with the Docker registry.
