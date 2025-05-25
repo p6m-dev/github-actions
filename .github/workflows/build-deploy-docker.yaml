@@ -56,6 +56,11 @@ on:
         type: string
         required: false
         default: ubuntu-24.04-arm
+      push:
+        description: Whether to push the built images to the registry. Set to false to only refresh cache.
+        type: boolean
+        required: false
+        default: true
 
 env:
   DOCKER_REGISTRY: ${{ inputs.registry || vars.ARTIFACTORY_HOSTNAME }}
@@ -102,7 +107,7 @@ jobs:
           secret-envs: ${{ secrets.secret-envs }}
           secret-files: ${{ secrets.secret-files }}
           outputs: |
-            type=registry,name=${{ env.DOCKER_REGISTRY }}/${{ inputs.image-name }},push-by-digest=true,name-canonical=true
+            type=image,name=${{ env.DOCKER_REGISTRY }}/${{ inputs.image-name }},push=${{ inputs.push }},push-by-digest=true,name-canonical=true
 
       - name: Export digest
         run: |
@@ -118,6 +123,7 @@ jobs:
           retention-days: 1
 
   merge:
+    if: ${{ inputs.push }}
     needs:
       - build
 
