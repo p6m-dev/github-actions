@@ -31,28 +31,47 @@ jobs:
 
       - name: Update image digest for Managed Clusters
         run: |
-          export RUNTIME_DIRECTORY="kubernetes"
-          mkdir -p ${{ github.workspace }}/${RUNTIME_DIRECTORY}/${{ github.event.client_payload.directory_name }}/${{ github.event.client_payload.environment_dir }}
-          curl -s -o install_kustomize.sh "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
-          chmod +x ./install_kustomize.sh; 
-          ./install_kustomize.sh 5.1.0
-          sudo mv kustomize /usr/local/bin/kustomize
-          cd ${{ github.workspace }}/${RUNTIME_DIRECTORY}/${{ github.event.client_payload.directory_name }}/${{ github.event.client_payload.environment_dir }}
-          if [ ! -f kustomization.yaml ]; then cat > kustomization.yaml << EndOfMessage
-          apiVersion: kustomize.config.k8s.io/v1beta1
-          kind: Kustomization
+          set -e
+          ENV="${{ github.event.client_payload.environment_dir }}"
+          REPO="${{ github.event.client_payload.directory_name }}"
+          DIGEST="${{ github.event.client_payload.digest }}"
+          USE_DEFAULT="${{ github.event.client_payload.useDefaultDirectory }}"
+          ORGS_JSON='${{ toJson(github.event.client_payload.additionalOrgs) }}'
+          ORGS=$(echo "$ORGS_JSON" | jq -r '.[]')
 
-          resources:
-            - https://github.com/${{github.repository_owner}}/${{ github.event.client_payload.resource_directory_name || github.event.client_payload.directory_name }}/.platform/kubernetes/${{ github.event.client_payload.environment_dir }}
-          EndOfMessage
+          update_dir() {
+            TARGET_DIR="$1"
+            mkdir -p "$TARGET_DIR"
+            curl -s -o install_kustomize.sh "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+            chmod +x ./install_kustomize.sh; 
+            ./install_kustomize.sh 5.1.0
+            sudo mv kustomize /usr/local/bin/kustomize
+            cd "$TARGET_DIR"
+            if [ ! -f kustomization.yaml ]; then cat <<'EndOfMessage' > kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - https://github.com/${{github.repository_owner}}/${{ github.event.client_payload.resource_directory_name || github.event.client_payload.directory_name }}/.platform/kubernetes/${ENV}
+EndOfMessage
+            fi
+            if [ "${{ github.event.client_payload.registry}}" = "ecr" ]; then
+              kustomize edit set image ${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server=${{ github.event.client_payload.account_id}}.dkr.ecr.${{ github.event.client_payload.region }}.amazonaws.com/${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server@${DIGEST}
+            else
+              kustomize edit set image ${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server=${{ env.ARTIFACTORY_HOSTNAME }}/${{github.repository_owner}}-docker-local/applications/${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server@${DIGEST}
+            fi
+            kustomize edit set annotation meta.p6m.dev/github-repository:${{github.event.client_payload.repository}}
+            git add .
+            cd -
+          }
+
+          if [ "$USE_DEFAULT" = "true" ]; then
+            update_dir "${GITHUB_WORKSPACE}/kubernetes/${REPO}/${ENV}"
           fi
-          if [ "${{ github.event.client_payload.registry}}" = "ecr" ]; then
-            kustomize edit set image ${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server=${{ github.event.client_payload.account_id}}.dkr.ecr.${{ github.event.client_payload.region }}.amazonaws.com/${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server@${{ github.event.client_payload.digest }}
-          else
-            kustomize edit set image ${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server=${{ env.ARTIFACTORY_HOSTNAME }}/${{github.repository_owner}}-docker-local/applications/${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server@${{ github.event.client_payload.digest }}
-          fi
-          kustomize edit set annotation meta.p6m.dev/github-repository:${{github.event.client_payload.repository}}
-          git add .
+
+          for ORG in $ORGS; do
+            update_dir "${GITHUB_WORKSPACE}/external/${ORG}/kubernetes/${ENV}"
+          done
+
       # DISABLED: Backstage is not currently being used
       # - name: Create backstage components for project
       #   run: |

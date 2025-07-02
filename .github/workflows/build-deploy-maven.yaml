@@ -128,13 +128,10 @@ jobs:
 
       - name: Trigger Update Image Digest
         if: github.ref == 'refs/heads/main'
-        run: |
-          echo ${{ github.ref }}
-          echo ${{ steps.mvn_build.outputs.digest }}
-          echo ${{ vars.PLATFORM_DISPATCH_URL }}
-          curl -X POST \
-            -H "Accept: application/vnd.github.everest-preview+json" \
-            -H "Authorization: token ${{ secrets.UPDATE_MANIFEST_TOKEN }}" \
-            ${{ vars.PLATFORM_DISPATCH_URL }} \
-            --fail-with-body \
-            -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"dev\", \"digest\": \"${{ steps.mvn_build.outputs.digest }}\"}}"
+        uses: ./.github/workflows/trigger-update-image-digest.yaml
+        with:
+          repository: ${{ github.repository }}
+          directory_name: ${{ github.repository }}
+          environment_dir: dev
+          digest: ${{ steps.mvn_build.outputs.digest }}
+          UPDATE_MANIFEST_TOKEN: ${{ secrets.UPDATE_MANIFEST_TOKEN }}
