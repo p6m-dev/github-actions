@@ -33,11 +33,12 @@ jobs:
         id: parse
         run: |
           python3 <<EOF
-          import sys, os, yaml, json
+          import sys, os, yaml, json, os
           env = "${{ inputs.environment_dir }}"
           config_path = ".platform/env-org-map.yaml"
           use_default = True
           orgs = []
+          default_org = os.environ.get('DEFAULT_DESTINATION_ORG')
           if os.path.exists(config_path):
               with open(config_path) as f:
                   config = yaml.safe_load(f) or {}
@@ -45,6 +46,8 @@ jobs:
               if env_config is not None:
                   use_default = not env_config.get("externalOnly", False)
                   orgs = env_config.get("additionalOrgs", []) or []
+          elif default_org:
+              orgs = [default_org]
           print(f"useDefaultDirectory={str(use_default).lower()}", file=open(os.environ['GITHUB_OUTPUT'], 'a'))
           print(f"additionalOrgs={json.dumps(orgs)}", file=open(os.environ['GITHUB_OUTPUT'], 'a'))
           EOF
