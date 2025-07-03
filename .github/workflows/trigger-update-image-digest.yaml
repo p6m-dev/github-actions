@@ -18,7 +18,6 @@ on:
     secrets:
       UPDATE_MANIFEST_TOKEN:
         required: true
-        type: string
 
 jobs:
   trigger:
