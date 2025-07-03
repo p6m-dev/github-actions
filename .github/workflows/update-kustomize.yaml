@@ -52,11 +52,11 @@ jobs:
             sudo mv kustomize /usr/local/bin/kustomize
             cd "$TARGET_DIR"
             if [ ! -f kustomization.yaml ]; then cat <<'EndOfMessage' > kustomization.yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - https://github.com/${{github.repository_owner}}/${{ github.event.client_payload.resource_directory_name || github.event.client_payload.directory_name }}/.platform/kubernetes/${ENV}
-EndOfMessage
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          resources:
+            - https://github.com/${{github.repository_owner}}/${{ github.event.client_payload.resource_directory_name || github.event.client_payload.directory_name }}/.platform/kubernetes/${ENV}
+          EndOfMessage
             fi
             if [ "${{ github.event.client_payload.registry}}" = "ecr" ]; then
               kustomize edit set image ${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server=${{ github.event.client_payload.account_id}}.dkr.ecr.${{ github.event.client_payload.region }}.amazonaws.com/${{ github.event.client_payload.image_name || github.event.client_payload.directory_name }}-server@${DIGEST}
@@ -92,7 +92,7 @@ EndOfMessage
       #         backstage.io/kubernetes-namespace: ${{ github.event.client_payload.directory_name }}
       #         backstage.io/kubernetes-label-selector: ybor.ai/app=${{ github.event.client_payload.directory_name }}
       #       description: ${{ github.event.client_payload.directory_name }}
-      #       name: ${{ github.event.client_payload.directory_name }}            
+      #       name: ${{ github.event.client_payload.directory_name }}
       #     spec:
       #       lifecycle: production
       #       owner: user:guest
