@@ -39,6 +39,10 @@ jobs:
           ORGS_JSON='${{ toJson(github.event.client_payload.additionalOrgs) }}'
           ORGS=$(echo "$ORGS_JSON" | jq -r '.[]')
 
+          echo "DEBUG: USE_DEFAULT: $USE_DEFAULT"
+          echo "DEBUG: ORGS_JSON: $ORGS_JSON"
+          echo "DEBUG: ORGS: $ORGS"
+
           update_dir() {
             TARGET_DIR="$1"
             mkdir -p "$TARGET_DIR"
