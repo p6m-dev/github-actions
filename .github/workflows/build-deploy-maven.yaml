@@ -128,7 +128,7 @@ jobs:
 
       - name: Trigger Update Image Digest
         if: github.ref == 'refs/heads/main'
-        uses: ./.github/workflows/trigger-update-image-digest.yaml
+        uses: p6m-dev/github-actions/.github/workflows/trigger-update-image-digest.yaml
         with:
           repository: ${{ github.repository }}
           directory_name: ${{ github.repository }}
