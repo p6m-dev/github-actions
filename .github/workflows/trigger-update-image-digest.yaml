@@ -15,6 +15,7 @@ on:
       digest:
         required: true
         type: string
+    secrets:
       UPDATE_MANIFEST_TOKEN:
         required: true
         type: string
