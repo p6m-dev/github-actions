@@ -60,7 +60,7 @@ on:
         description: The `runs-on` tag for the linux arm64 runner. Defaults to the Github standard runner.
         type: string
         required: false
-        default: ubuntu-24.04-arm
+        default: ubuntu-latest
       push:
         description: Whether to push the built images to the registry. Set to false to only refresh cache.
         type: boolean
@@ -88,8 +88,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.github_ref }}
+            ref: ${{ inputs.github_ref }}
 
+      - name: Docker Setup QEMU
+        uses: docker/setup-qemu-action@v3
+        
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
