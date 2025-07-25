@@ -62,7 +62,7 @@ jobs:
       - name: Test Crates
         if: always()
         id: test
-        run: cargo test --workspace 2>&1
+        run: cargo test 2>&1
 
       - name: Output Summary
         if: always()
@@ -95,8 +95,8 @@ jobs:
         run: |
           git config user.name ${{ env.COMMIT_USER }}
           git config user.email ${{ env.COMMIT_EMAIL }}
-          cargo release tag --workspace --no-confirm --execute
-          cargo release version --workspace --no-confirm --execute beta
+          cargo release tag --no-confirm --execute
+          cargo release version --no-confirm --execute beta
           cargo release commit --no-confirm --execute
 
       - name: Push
@@ -126,9 +126,6 @@ jobs:
       matrix:
         publish_registry: ${{ fromJSON(needs.matrix.outputs.publish_registry) }}
 
-    env:
-      EXTRA_CARGO_OPTS: ${{ needs.prep.outputs.extra_cargo_opts }}
-
     steps:
       - uses: actions/checkout@v4
 
@@ -145,7 +142,7 @@ jobs:
 
       - name: Publish Crates
         run: |
-          cargo release publish --workspace --registry ${{ matrix.publish_registry }} --no-confirm --no-verify --execute
+          cargo release publish --registry ${{ matrix.publish_registry }} --no-confirm --no-verify --execute
 
       - name: Update Job Summary
         env:
