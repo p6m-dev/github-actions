@@ -14,8 +14,11 @@ on:
         description: The password to use to authenticate with the Docker registry.
         required: true
       CARGO_TOKEN:
-        description: The token to use to authenticate with the Cargo registry.
+        description: The token to use to authenticate with the Cargo registry. (Deprecated)
         required: true
+      CARGO_TOKENS:
+        description: The registries to login to. (registry=Bearer token) one per line.
+        required: false
       UPDATE_MANIFEST_TOKEN:
         description: The token to use to push the new image digest to the .platform repo.
         required: true
@@ -79,6 +82,7 @@ jobs:
         with:
           cargo-tokens: |
             ${{ inputs.CARGO_REGISTRY_ALIAS }}=${{ secrets.CARGO_TOKEN }}
+            ${{ secrets.CARGO_TOKENS }}
       - id: pkg-version
         name: Get Package Version
         run: |
@@ -111,6 +115,7 @@ jobs:
       password: ${{ secrets.DOCKER_PASSWORD }}
       secrets: |
         ${{ inputs.CARGO_REGISTRY_ALIAS }}=Bearer ${{ secrets.CARGO_TOKEN }}
+        ${{ secrets.CARGO_TOKENS }}
 
   publish-crates:
     if: github.ref_name == 'main'
@@ -133,6 +138,7 @@ jobs:
         with:
           cargo-tokens: |
             ${{ inputs.CARGO_REGISTRY_ALIAS }}=${{ secrets.CARGO_TOKEN }}
+            ${{ secrets.CARGO_TOKENS }}
 
       - name: Install cargo-release
         uses: baptiste0928/cargo-install@v3
@@ -181,6 +187,7 @@ jobs:
         with:
           cargo-tokens: |
             ${{ inputs.CARGO_REGISTRY_ALIAS }}=${{ secrets.CARGO_TOKEN }}
+            ${{ secrets.CARGO_TOKENS }}
 
       - name: Bump Version
         run: cargo release version patch -x --no-confirm --workspace
