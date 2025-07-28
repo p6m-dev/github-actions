@@ -146,7 +146,7 @@ jobs:
             fi
             
             echo "Publishing to registry: $registry"
-            cargo workspaces publish --publish-as-is --registry "$registry" --no-verify --token "$token"
+            cargo workspaces publish --publish-as-is --registry "$registry" --no-verify --token "Bearer $token"
           done
 
       - name: Update Job Summary
