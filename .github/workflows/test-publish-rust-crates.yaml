@@ -118,6 +118,12 @@ jobs:
           crate: cargo-workspaces
           version: 0.4.0
 
+      # Configure registry authentication for dependency resolution
+      - name: Cargo Registry Login
+        uses: p6m-dev/github-actions/cargo-registry-login@main
+        with:
+          cargo-tokens: ${{ secrets.tokens }}
+
       - name: Publish Crates to Registries
         run: |
           # Parse registries from input (newline separated)
@@ -146,6 +152,7 @@ jobs:
             fi
             
             echo "Publishing to registry: $registry"
+            # Pass token directly since cargo-workspaces doesn't use credential providers
             cargo workspaces publish --publish-as-is --registry "$registry" --no-verify --token "Bearer $token"
           done
 
