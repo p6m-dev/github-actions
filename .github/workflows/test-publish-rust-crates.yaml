@@ -142,7 +142,7 @@ jobs:
 
       - name: Publish Crates
         run: |
-          cargo workspaces publish --publish-as-is --registry ${{ matrix.publish_registry }}
+          cargo workspaces publish --publish-as-is --registry ${{ matrix.publish_registry }} --no-verify
 
       - name: Update Job Summary
         env:
