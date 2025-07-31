@@ -58,11 +58,17 @@ jobs:
             - https://github.com/${{ github.repository_owner }}/${{ github.event.client_payload.resource_directory_name || github.event.client_payload.directory_name }}/.platform/kubernetes/${{ github.event.client_payload.environment_dir }}
           EndOfMessage
           fi
-      
-          if [ "${{ github.event.client_payload.registry }}" = "ecr" ]; then
-            kustomize edit set image "${NORMALIZED_DIR_NAME}-server=${{ github.event.client_payload.account_id }}.dkr.ecr.${{ github.event.client_payload.region }}.amazonaws.com/${NORMALIZED_DIR_NAME}-server@${{ github.event.client_payload.digest }}"
+
+          if [ -z "${{ github.event.client_payload.image_name }}" ]; then
+            IMAGE_NAME=$NORMALIZED_DIR_NAME
           else
-            kustomize edit set image "${NORMALIZED_DIR_NAME}-server=${{ env.ARTIFACTORY_HOSTNAME }}/${{ github.repository_owner }}-docker-local/applications/${NORMALIZED_DIR_NAME}-server@${{ github.event.client_payload.digest }}"
+            IMAGE_NAME="${{ github.event.client_payload.image_name }}"
+          fi
+
+          if [ "${{ github.event.client_payload.registry }}" = "ecr" ]; then
+            kustomize edit set image "${IMAGE_NAME}-server=${{ github.event.client_payload.account_id }}.dkr.ecr.${{ github.event.client_payload.region }}.amazonaws.com/${IMAGE_NAME}-server@${{ github.event.client_payload.digest }}"
+          else
+            kustomize edit set image "${IMAGE_NAME}-server=${{ env.ARTIFACTORY_HOSTNAME }}/${{ github.repository_owner }}-docker-local/applications/${IMAGE_NAME}-server@${{ github.event.client_payload.digest }}"
           fi
       
           kustomize edit set annotation meta.p6m.dev/github-repository:${{ github.event.client_payload.repository }}
