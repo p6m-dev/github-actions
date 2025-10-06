@@ -1,4 +1,5 @@
 name: Update Image Digest
+run-name: Update Image Digest for ${{ github.event.client_payload.directory_name }} (${{ github.event.client_payload.environment_dir }})"
 
 on:
   workflow_call:
