@@ -77,6 +77,7 @@ jobs:
           pybump bump --file ./Chart.yaml --level patch
 
       - name: Tag then Commit
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
         uses: p6m-actions/p6m-release-action@v2
         env:
           PLATFORM_TOKEN_EXCHANGE_URL: https://auth.p6m.dev/api/github/actions/token-exchange
