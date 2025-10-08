@@ -16,7 +16,8 @@ on:
       platform-installation-id:
         description: 'The installation ID of the p6m-ybor app for the github org.'
         type: string
-        required: true
+        required: false
+        default: ${{ vars.PLATFORM_INSTALLATION_ID }}
       ARTIFACTORY_HOSTNAME:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
         type: string
