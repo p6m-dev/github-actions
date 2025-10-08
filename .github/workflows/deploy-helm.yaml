@@ -13,6 +13,11 @@ on:
         required: false
         type: boolean
         default: false
+      platform-installation-id:
+        description: 'The installation ID of the p6m-ybor app for the github org.'
+        type: string
+        required: false
+        default: ${{ vars.PLATFORM_INSTALLATION_ID }}
       ARTIFACTORY_HOSTNAME:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
         type: string
@@ -70,11 +75,11 @@ jobs:
           pipx install pybump
           pybump bump --file ./Chart.yaml --level patch
 
-      - name: Commit and Push
-        if: ${{ inputs.deploy }}
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add .
-          git commit -m "[skip ci] Bump Version"
-          git push
+      - name: Tag then Commit
+        uses: p6m-actions/p6m-release-action@v2
+        env:
+          PLATFORM_TOKEN_EXCHANGE_URL: https://auth.p6m.dev/api/github/actions/token-exchange
+          PLATFORM_INSTALLATION_ID: ${{ inputs.platform-installation-id }}
+        with:
+          tags:
+            v${{ steps.current_version.outputs.version }}
