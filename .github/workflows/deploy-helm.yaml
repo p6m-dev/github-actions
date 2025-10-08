@@ -33,6 +33,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 env:
   ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.ARTIFACTORY_HOSTNAME }}
