@@ -62,7 +62,11 @@ on:
         type: boolean
         required: false
         default: true
-
+      PLATFORM_INSTALLATION_ID:
+        description: 'The installation ID of the p6m-ybor app for the github org.'
+        type: string
+        required: false
+        default: ${{ vars.PLATFORM_INSTALLATION_ID }}
 env:
   CARGO_TERM_COLOR: always
   DOCKER_REGISTRY: ${{ inputs.DOCKER_REGISTRY || vars.ARTIFACTORY_HOSTNAME}}
@@ -169,12 +173,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Tag and Push
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git tag -a ${{ needs.current_version.outputs.VERSION }} -m "Release ${{ needs.current_version.outputs.VERSION }}"
-          git push origin ${{ needs.current_version.outputs.VERSION }}
 
       - name: Install cargo-release
         uses: baptiste0928/cargo-install@v3
@@ -192,16 +190,14 @@ jobs:
       - name: Bump Version
         run: cargo release version patch -x --no-confirm --workspace
 
-      - name: Commit and Push
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add .
-          git commit -m "[skip ci] Bump Version"
-          # rebase to most resent changes
-          git fetch origin
-          git rebase origin/main
-          git push
+      - name: Tag then Commit
+        uses: p6m-actions/p6m-release-action@v2
+        env:
+          PLATFORM_TOKEN_EXCHANGE_URL: https://auth.p6m.dev/api/github/actions/token-exchange
+          PLATFORM_INSTALLATION_ID: ${{ inputs.platform-installation-id }}
+        with:
+          tags:
+            v${{ needs.current_version.outputs.VERSION }}
 
   trigger-cd:
     if: github.ref_name == 'main'
