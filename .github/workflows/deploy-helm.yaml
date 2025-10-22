@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: ${{ github.repository_owner }}
+      update_dependencies:
+        description: 'A value indicating whether to update dependencies as indicated by Chart.yaml and Chart.lock'
+        required: false
+        type: boolean
+        default: false
       deploy:
         description: 'A value indicating whether to push out the Helm chart and bump the version.'
         required: false
@@ -57,6 +62,10 @@ jobs:
           registry: ${{ env.ARTIFACTORY_HOSTNAME}}
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+
+      - name: Helm Dependency Update
+        if: inputs.update_dependencies
+        run: helm dependency update .
 
       - name: Helm Package
         run: helm package .
