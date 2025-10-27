@@ -46,6 +46,11 @@ on:
         default: "ubuntu-latest"
         required: false
         type: string
+      platform-installation-id:
+        description: 'The installation ID of the p6m-ybor app for the github org.'
+        type: string
+        required: false
+        default: ${{ vars.PLATFORM_INSTALLATION_ID }}
 
 env:
   ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -139,6 +144,16 @@ jobs:
             CONTAINER_LABEL=sha-${{ github.sha }}
             pypi_username=${{ secrets.ARTIFACTORY_USERNAME }}
             pypi_password=${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
+
+      - name: Tag then Commit
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        uses: p6m-actions/p6m-release-action@v2
+        env:
+          PLATFORM_TOKEN_EXCHANGE_URL: https://auth.p6m.dev/api/github/actions/token-exchange
+          PLATFORM_INSTALLATION_ID: ${{ inputs.platform-installation-id }}
+        with:
+          tags:
+            v${{ steps.pkg-version.outputs.VERSION }}
 
       - name: Record Summary
         run: |
