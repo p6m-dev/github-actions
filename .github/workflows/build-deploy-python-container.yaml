@@ -145,6 +145,9 @@ jobs:
             pypi_username=${{ secrets.ARTIFACTORY_USERNAME }}
             pypi_password=${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
 
+      - name: Prep Next Version
+        run: poetry version patch
+
       - name: Tag then Commit
         if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
         uses: p6m-actions/p6m-release-action@v2
