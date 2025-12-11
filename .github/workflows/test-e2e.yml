@@ -111,10 +111,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Setup NodeJS 16
+      - name: Setup NodeJS 20
         uses: actions/setup-node@v1
         with:
-          node-version: 16
+          node-version: 20
 
       - name: Install pnpm
         run: npm install -g pnpm
@@ -188,10 +188,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Setup NodeJS 16
+      - name: Setup NodeJS 20
         uses: actions/setup-node@v1
         with:
-          node-version: 16
+          node-version: 20
 
       - name: Install pnpm
         run: npm install -g pnpm
@@ -288,10 +288,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Setup NodeJS 16
+      - name: Setup NodeJS 20
         uses: actions/setup-node@v1
         with:
-          node-version: 16
+          node-version: 20
 
       - name: Install pnpm
         run: npm install -g pnpm

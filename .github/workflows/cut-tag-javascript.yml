@@ -65,10 +65,10 @@ jobs:
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
       
-      - name: Setup NodeJS
+      - name: Setup NodeJS 20
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
       
       - name: Install pnpm
         run: npm install -g pnpm
