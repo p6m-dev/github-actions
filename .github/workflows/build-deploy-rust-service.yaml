@@ -23,6 +23,11 @@ on:
         description: The token to use to push the new image digest to the .platform repo.
         required: true
     inputs:
+      CD_ENABLED:
+        description: Whether to trigger the CD dispatch step
+        type: boolean
+        required: false
+        default: true
       MODE:
         description: Release or Debug mode
         type: string
@@ -204,7 +209,7 @@ jobs:
             v${{ needs.current_version.outputs.VERSION }}
 
   trigger-cd:
-    if: github.ref_name == 'main'
+    if: ${{ inputs.CD_ENABLED && github.ref_name == 'main' }}
     runs-on: ubuntu-latest
     needs: build
 
