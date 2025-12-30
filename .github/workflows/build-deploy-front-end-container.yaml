@@ -108,7 +108,7 @@ jobs:
 
       - name: Build
         run: |
-          pnpm nx run-many --target=build --all --parallel=5 --prod --exclude docs --skip-nx-cache
+          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=$(openssl rand -base64 32) pnpm nx run-many --target=build --all --parallel=5 --prod --exclude docs --skip-nx-cache
 
       - name: Set up Docker Buildx
         id: buildx
