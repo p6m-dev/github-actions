@@ -23,6 +23,9 @@ on:
         required: false
       AWS_SECRET_ACCESS_KEY:
         required: false
+      NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:
+        required: false
+        description: The encryption key used to encrypt/decrypt server payloads. If not provided, one will be auto-generated. When deploying multiple replicas, this should be specified to ensure consistency.
     inputs:
       REACT_APP_ENV:
         required: false
@@ -107,8 +110,10 @@ jobs:
           path: coverage
 
       - name: Build
+        env:
+          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
         run: |
-          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=$(openssl rand -base64 32) pnpm nx run-many --target=build --all --parallel=5 --prod --exclude docs --skip-nx-cache
+          pnpm nx run-many --target=build --all --parallel=5 --prod --exclude docs --skip-nx-cache
 
       - name: Set up Docker Buildx
         id: buildx

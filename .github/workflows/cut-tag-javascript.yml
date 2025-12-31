@@ -17,6 +17,9 @@ on:
         required: false
       CONTENTFUL_ENVIRONMENT_ID:
         required: false
+      NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:
+        required: false
+        description: The encryption key used to encrypt/decrypt server payloads. If not provided, one will be auto-generated. When deploying multiple replicas, this should be specified to ensure consistency.
     inputs:
       NX_APP:
         type: string
@@ -117,6 +120,8 @@ jobs:
           git push --follow-tags
 
       - name: Build apps
+        env:
+          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
         run: |
           pnpm nx build $NX_APP
 
