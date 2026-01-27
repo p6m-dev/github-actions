@@ -81,7 +81,7 @@ jobs:
           fi
       
           kustomize edit set annotation meta.p6m.dev/github-repository:${{ github.event.client_payload.repository }}
-          kustomize edit set annotation meta.p6m.dev/last-updated:$(date +%s)
+          kustomize edit set annotation meta.p6m.dev/last-updated:"$(date +%s)"
           git add .
       # DISABLED: Backstage is not currently being used
       # - name: Create backstage components for project
