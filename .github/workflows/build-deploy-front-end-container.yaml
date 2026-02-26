@@ -26,6 +26,11 @@ on:
       NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:
         required: false
         description: The encryption key used to encrypt/decrypt server payloads. If not provided, one will be auto-generated. When deploying multiple replicas, this should be specified to ensure consistency.
+      extra-build-secrets:
+        required: false
+        description: |
+          Additional secrets to expose as env vars during the build step.
+          Format: KEY=VALUE pairs, one per line.
     inputs:
       REACT_APP_ENV:
         required: false
@@ -42,6 +47,12 @@ on:
       AWS_REGION:
         required: false
         type: string
+      extra-build-env:
+        required: false
+        type: string
+        description: |
+          Additional non-secret env vars to expose during the build step.
+          Format: KEY=VALUE pairs, one per line.
 
 env:
   ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -108,6 +119,20 @@ jobs:
         with:
           name: unit-tests-report
           path: coverage
+
+      - name: Export extra build secrets and env vars
+        env:
+          EXTRA_BUILD_SECRETS: ${{ secrets.extra-build-secrets }}
+          EXTRA_BUILD_ENV: ${{ inputs.extra-build-env }}
+        run: |
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            echo "$line" >> $GITHUB_ENV
+          done <<< "$EXTRA_BUILD_SECRETS"
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            echo "$line" >> $GITHUB_ENV
+          done <<< "$EXTRA_BUILD_ENV"
 
       - name: Build
         env:
