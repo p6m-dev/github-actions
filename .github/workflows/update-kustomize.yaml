@@ -57,7 +57,7 @@ jobs:
           kind: Kustomization
       
           resources:
-            - https://github.com/${{ github.repository_owner }}/${{ github.event.client_payload.resource_directory_name || github.event.client_payload.directory_name }}/.platform/kubernetes/${{ github.event.client_payload.environment_dir }}
+            - https://github.com/${{ github.event.client_payload.repository }}/.platform/kubernetes/${{ github.event.client_payload.environment_dir }}
           EndOfMessage
           fi
 
