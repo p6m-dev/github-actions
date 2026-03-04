@@ -45,10 +45,10 @@ jobs:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
 
-      - name: Setup NodeJS 16
+      - name: Setup NodeJS 20
         uses: actions/setup-node@v1
         with:
-          node-version: 16
+          node-version: 20
 
       - name: Install pnpm
         run: npm install -g pnpm
