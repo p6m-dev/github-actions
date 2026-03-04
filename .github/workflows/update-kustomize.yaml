@@ -52,12 +52,17 @@ jobs:
           cd "${{ github.workspace }}/${RUNTIME_DIRECTORY}/${NORMALIZED_DIR_NAME}/${{ github.event.client_payload.environment_dir }}"
       
           if [ ! -f kustomization.yaml ]; then
+            if [ -n "${{ github.event.client_payload.resource_directory_name }}" ]; then
+              RESOURCE_BASE="${{ github.repository_owner }}/${{ github.event.client_payload.resource_directory_name }}"
+            else
+              RESOURCE_BASE="${{ github.event.client_payload.repository }}"
+            fi
             cat > kustomization.yaml << EndOfMessage
           apiVersion: kustomize.config.k8s.io/v1beta1
           kind: Kustomization
-      
+
           resources:
-            - https://github.com/${{ github.repository_owner }}/${{ github.event.client_payload.resource_directory_name || github.event.client_payload.directory_name }}/.platform/kubernetes/${{ github.event.client_payload.environment_dir }}
+            - https://github.com/${RESOURCE_BASE}/.platform/kubernetes/${{ github.event.client_payload.environment_dir }}
           EndOfMessage
           fi
 
