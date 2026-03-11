@@ -67,6 +67,13 @@ jobs:
         if: inputs.update_dependencies
         run: helm dependency update .
 
+      - name: Helm Unit Tests
+        if: hashFiles('tests/*_test.yaml') != ''
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest --verify=false
+          helm unittest .
+          grep -qxF 'tests/' .helmignore 2>/dev/null || echo 'tests/' >> .helmignore
+
       - name: Helm Package
         run: helm package .
 
