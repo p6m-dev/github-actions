@@ -72,7 +72,6 @@ jobs:
         uses: d3adb5/helm-unittest-action@850bc76597579183998069830d5fa8c3ef0ea34a # v2.5.0
         with:
           unittest-version: v1.0.3
-          helm-version: skip
           install-mode: if-not-present
 
       - name: Ensure tests excluded from package
