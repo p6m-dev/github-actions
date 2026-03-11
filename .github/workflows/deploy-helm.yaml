@@ -67,6 +67,17 @@ jobs:
         if: inputs.update_dependencies
         run: helm dependency update .
 
+      - name: Helm Unit Tests
+        if: hashFiles('tests/*_test.yaml') != ''
+        uses: d3adb5/helm-unittest-action@850bc76597579183998069830d5fa8c3ef0ea34a # v2.5.0
+        with:
+          unittest-version: v1.0.3
+          install-mode: if-not-present
+
+      - name: Ensure tests excluded from package
+        if: hashFiles('tests/*_test.yaml') != ''
+        run: grep -qxF 'tests/' .helmignore 2>/dev/null || echo 'tests/' >> .helmignore
+
       - name: Helm Package
         run: helm package .
 
