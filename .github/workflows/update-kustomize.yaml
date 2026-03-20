@@ -77,8 +77,10 @@ jobs:
 
           if [ "$REGISTRY" = "default" ]; then
             kustomize edit set image "${IMAGE_NAME}-server=${{ env.ARTIFACTORY_HOSTNAME }}/${NORMALIZED_REPOSITORY_OWNER}-docker-local/applications/${IMAGE_NAME}-server@${{ github.event.client_payload.digest }}"
+            kustomize edit set image "${IMAGE_NAME}=${{ env.ARTIFACTORY_HOSTNAME }}/${NORMALIZED_REPOSITORY_OWNER}-docker-local/applications/${IMAGE_NAME}@${{ github.event.client_payload.digest }}"
           elif [ "$REGISTRY" = "ecr" ]; then
             kustomize edit set image "${IMAGE_NAME}-server=${{ github.event.client_payload.account_id }}.dkr.ecr.${{ github.event.client_payload.region }}.amazonaws.com/${IMAGE_NAME}-server@${{ github.event.client_payload.digest }}"
+            kustomize edit set image "${IMAGE_NAME}=${{ github.event.client_payload.account_id }}.dkr.ecr.${{ github.event.client_payload.region }}.amazonaws.com/${IMAGE_NAME}@${{ github.event.client_payload.digest }}"
           else
             echo "No image update configured for registry: $REGISTRY"
           fi
