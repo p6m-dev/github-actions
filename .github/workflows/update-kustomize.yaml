@@ -35,36 +35,34 @@ jobs:
           normalize() {
             echo "$1" | tr '[:upper:]' '[:lower:]' | tr '._' '-' | sed -E 's/[^a-z0-9-]+/-/g' | sed -E 's/^-+|-+$//g'
           }
-      
+
           export RUNTIME_DIRECTORY="kubernetes"
-      
+
           # Normalize only directory_name
           export NORMALIZED_DIR_NAME=$(normalize "${{ github.event.client_payload.directory_name }}")
           export NORMALIZED_REPOSITORY_OWNER=$(normalize "${{ github.repository_owner }}")
-      
+
           mkdir -p "${{ github.workspace }}/${RUNTIME_DIRECTORY}/${NORMALIZED_DIR_NAME}/${{ github.event.client_payload.environment_dir }}"
-      
+
           curl -s -o install_kustomize.sh "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
           chmod +x ./install_kustomize.sh
           ./install_kustomize.sh 5.1.0
           sudo mv kustomize /usr/local/bin/kustomize
-      
+
           cd "${{ github.workspace }}/${RUNTIME_DIRECTORY}/${NORMALIZED_DIR_NAME}/${{ github.event.client_payload.environment_dir }}"
-      
-          if [ ! -f kustomization.yaml ]; then
-            if [ -n "${{ github.event.client_payload.resource_directory_name }}" ]; then
-              RESOURCE_BASE="${{ github.repository_owner }}/${{ github.event.client_payload.resource_directory_name }}"
-            else
-              RESOURCE_BASE="${{ github.event.client_payload.repository }}"
-            fi
-            cat > kustomization.yaml << EndOfMessage
+
+          if [ -n "${{ github.event.client_payload.resource_directory_name }}" ]; then
+            RESOURCE_BASE="${{ github.repository_owner }}/${{ github.event.client_payload.resource_directory_name }}"
+          else
+            RESOURCE_BASE="${{ github.event.client_payload.repository }}"
+          fi
+          cat > kustomization.yaml << EndOfMessage
           apiVersion: kustomize.config.k8s.io/v1beta1
           kind: Kustomization
 
           resources:
             - https://github.com/${RESOURCE_BASE}/.platform/kubernetes/${{ github.event.client_payload.environment_dir }}
           EndOfMessage
-          fi
 
           if [ -z "${{ github.event.client_payload.image_name }}" ]; then
             IMAGE_NAME=$NORMALIZED_DIR_NAME
@@ -84,7 +82,7 @@ jobs:
           else
             echo "No image update configured for registry: $REGISTRY"
           fi
-      
+
           kustomize edit set annotation meta.p6m.dev/github-repository:${{ github.event.client_payload.repository }}
           kustomize edit set annotation meta.p6m.dev/last-updated:"$(date +%s)"
           git add .
@@ -104,7 +102,7 @@ jobs:
       #         backstage.io/kubernetes-namespace: ${{ github.event.client_payload.directory_name }}
       #         backstage.io/kubernetes-label-selector: ybor.ai/app=${{ github.event.client_payload.directory_name }}
       #       description: ${{ github.event.client_payload.directory_name }}
-      #       name: ${{ github.event.client_payload.directory_name }}            
+      #       name: ${{ github.event.client_payload.directory_name }}
       #     spec:
       #       lifecycle: production
       #       owner: user:guest
