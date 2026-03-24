@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -77,15 +78,16 @@ jobs:
 
           if [ "$REGISTRY" = "default" ]; then
             kustomize edit set image "${IMAGE_NAME}-server=${{ env.ARTIFACTORY_HOSTNAME }}/${NORMALIZED_REPOSITORY_OWNER}-docker-local/applications/${IMAGE_NAME}-server@${{ github.event.client_payload.digest }}"
+            kustomize edit set image "${IMAGE_NAME}=${{ env.ARTIFACTORY_HOSTNAME }}/${NORMALIZED_REPOSITORY_OWNER}-docker-local/applications/${IMAGE_NAME}@${{ github.event.client_payload.digest }}"
           elif [ "$REGISTRY" = "ecr" ]; then
             kustomize edit set image "${IMAGE_NAME}-server=${{ github.event.client_payload.account_id }}.dkr.ecr.${{ github.event.client_payload.region }}.amazonaws.com/${IMAGE_NAME}-server@${{ github.event.client_payload.digest }}"
+            kustomize edit set image "${IMAGE_NAME}=${{ github.event.client_payload.account_id }}.dkr.ecr.${{ github.event.client_payload.region }}.amazonaws.com/${IMAGE_NAME}@${{ github.event.client_payload.digest }}"
           else
             echo "No image update configured for registry: $REGISTRY"
           fi
 
           kustomize edit set annotation meta.p6m.dev/github-repository:${{ github.event.client_payload.repository }}
           kustomize edit set annotation meta.p6m.dev/last-updated:"$(date +%s)"
-          git add .
       # DISABLED: Backstage is not currently being used
       # - name: Create backstage components for project
       #   run: |
@@ -122,13 +124,10 @@ jobs:
       #     branch: main
       #     targetBranch: main
       - name: Commit Changes
-        timeout-minutes: 1
-        run: |
-          git config --global alias.pushrebase '!git pull --rebase && git push'
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git commit -am "[skip ci] Update ${{ github.event.client_payload.directory_name }} image digest to ${{ github.event.client_payload.digest }}"
-          until git pushrebase origin main; do
-            echo "Push/Rebase failed, retrying..."
-            sleep 1
-          done
+        uses: p6m-actions/p6m-release-action@v2
+        env:
+          PLATFORM_TOKEN_EXCHANGE_URL: https://auth.p6m.dev/api/github/actions/token-exchange
+          PLATFORM_INSTALLATION_ID: ${{ vars.PLATFORM_INSTALLATION_ID }}
+        with:
+          tags: "" # No tags
+          commit_message: "[skip ci] Update ${{ github.event.client_payload.directory_name }} image digest to ${{ github.event.client_payload.digest }}"
