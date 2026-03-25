@@ -88,6 +88,7 @@ jobs:
 
           kustomize edit set annotation meta.p6m.dev/github-repository:${{ github.event.client_payload.repository }}
           kustomize edit set annotation meta.p6m.dev/last-updated:"$(date +%s)"
+          git add --intent-to-add .  # intent-to-add required by p6m-release-action to avoid committing undesired changes.
       # DISABLED: Backstage is not currently being used
       # - name: Create backstage components for project
       #   run: |
