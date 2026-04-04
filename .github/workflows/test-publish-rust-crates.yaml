@@ -22,8 +22,6 @@ on:
 env:
   CARGO_TERM_COLOR: always
   CARGO_RELEASE_VERSION: 0.25.10
-  COMMIT_USER: github-actions
-  COMMIT_EMAIL: github-actions@users.noreply.github.com
 
 jobs:
   prep:
@@ -93,16 +91,13 @@ jobs:
 
       - name: Prepare next Cargo beta
         run: |
-          git config user.name ${{ env.COMMIT_USER }}
-          git config user.email ${{ env.COMMIT_EMAIL }}
-          cargo release tag --no-confirm --execute
+          echo "CURRENT_VERSION=$(cargo metadata --format-version=1 | jq -r '.workspace_members[0]' | awk -F# '{print $NF}')" >> $GITHUB_ENV
           cargo release version --no-confirm --execute beta
-          cargo release commit --no-confirm --execute
 
-      - name: Push
-        run: |
-          git push
-          git push --tags
+      - name: Tag then Commit
+        uses: p6m-actions/p6m-release-action@v2
+        with:
+          tags: v${{ env.CURRENT_VERSION }}
 
   publish-crates:
     if: ${{ inputs.publish }}
