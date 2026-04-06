@@ -171,10 +171,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: p6m-actions/token-exchange@v2
+
       - name: Tag and Push
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           git tag -a ${{ needs.build.outputs.VERSION }} -m "Release ${{ needs.build.outputs.VERSION }}"
           git push origin ${{ needs.build.outputs.VERSION }}
 
@@ -194,8 +195,6 @@ jobs:
 
       - name: Commit and Push
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           git add .
           git commit -m "[skip ci] Bump Version"
           git push

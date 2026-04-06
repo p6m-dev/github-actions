@@ -73,6 +73,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: p6m-actions/token-exchange@v2
+
       # Required for Multi-arch builds
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -102,8 +104,6 @@ jobs:
       - name: Commit & Tag Version
         id: tag
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           cargo release ${{ inputs.LEVEL }} --workspace --no-publish --no-push --tag-prefix '' --no-confirm --execute
 
           # The cargo release command performs a commit for us but with a generic message.
@@ -222,6 +222,8 @@ jobs:
         with:
           ref: ${{ needs.tag.outputs.name }}
 
+      - uses: p6m-actions/token-exchange@v2
+
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
         with:
@@ -235,8 +237,6 @@ jobs:
 
       - name: Prepare next beta version
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           cargo release beta --no-publish --no-push --no-tag --workspace --no-confirm -v --execute
 
           # The cargo release beta command performs a commit for us but with a generic message.

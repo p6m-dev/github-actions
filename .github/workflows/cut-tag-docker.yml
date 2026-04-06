@@ -43,6 +43,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: p6m-actions/token-exchange@v2
+
       # Required for Multi-arch builds
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -77,8 +79,6 @@ jobs:
 
       - name: Git Commit & Tag
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           git add .
           git commit --allow-empty -am "Set version to ${{ steps.TAG.outputs.tag_name }}"
           git tag -a ${{ steps.TAG.outputs.tag_name }} -m "Release ${{ steps.TAG.outputs.value }}"

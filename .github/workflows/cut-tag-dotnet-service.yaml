@@ -72,6 +72,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - uses: p6m-actions/token-exchange@v2
+
       # Required for Multi-arch builds
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -116,8 +118,6 @@ jobs:
 
       - name: Commit & Tag Version
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           git tag -a ${{ steps.TAG.outputs.tag_name }} -m "Release ${{ steps.TAG.outputs.value }}"
           git push origin ${{ steps.TAG.outputs.tag_name }}
 
@@ -185,8 +185,6 @@ jobs:
           xmlstarlet ed --inplace -u "//VersionPrefix" -v "${NEW_VERSION}" Directory.Build.props
           cat Directory.Build.props  # Print to verify the update
 
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           git add .
           git commit -am "[skip ci] Bump version ${NEW_VERSION}"
           git push origin main

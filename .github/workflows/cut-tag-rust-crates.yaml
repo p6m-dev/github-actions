@@ -26,9 +26,6 @@ on:
 env:
   CARGO_TERM_COLOR: always
   CARGO_RELEASE_VERSION: 0.25.10
-  COMMIT_USER: github-actions
-  COMMIT_EMAIL: github-actions@users.noreply.github.com 
-
 jobs:
   prep:
     runs-on: ubuntu-latest
@@ -66,6 +63,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: p6m-actions/token-exchange@v2
+
       - name: Install cargo-release
         uses: baptiste0928/cargo-install@v3
         with:
@@ -74,8 +73,6 @@ jobs:
 
       - name: Update metadata for current release
         run: |
-          git config user.name ${{ env.COMMIT_USER }}
-          git config user.email ${{ env.COMMIT_EMAIL }}
           cargo release version $EXTRA_CARGO_OPTS --no-confirm --execute ${{ inputs.level }}
           cargo release commit --no-confirm --execute
           cargo release tag $EXTRA_CARGO_OPTS --no-confirm --execute

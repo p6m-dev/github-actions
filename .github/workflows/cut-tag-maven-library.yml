@@ -28,6 +28,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - uses: p6m-actions/token-exchange@v2
+
       - name: Configure Maven
         uses: whelk-io/maven-settings-xml-action@v21
         with:
@@ -87,8 +89,6 @@ jobs:
 
       - name: Git Commit & Tag
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           git add .
           git commit -am "Set version to ${{ steps.TAG.outputs.tag_name }}"
           git tag -a ${{ steps.TAG.outputs.tag_name }} -m "Release ${{ steps.TAG.outputs.value }}"
@@ -110,8 +110,6 @@ jobs:
 
       - name: Commit snapshot version update
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           git add .
           git commit -am "Prepare next development version ${{ steps.SNAPSHOT.outputs.value }}"
           git push origin ${{ github.ref_name }}
