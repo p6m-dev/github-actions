@@ -123,9 +123,10 @@ jobs:
             ${{ inputs.build-args }}
             SCCACHE_GHA_ENABLED=on
             ACTIONS_RESULTS_URL=${{ env.ACTIONS_RESULTS_URL }}
-            ACTIONS_RUNTIME_TOKEN=${{ env.ACTIONS_RUNTIME_TOKEN }}
           secrets: ${{ secrets.secrets }}
-          secret-envs: ${{ secrets.secret-envs }}
+          secret-envs: |
+            ${{ secrets.secret-envs }}
+            ACTIONS_RUNTIME_TOKEN=ACTIONS_RUNTIME_TOKEN
           secret-files: ${{ secrets.secret-files }}
           outputs: |
             type=image,name=${{ env.DOCKER_REGISTRY }}/${{ inputs.image-name }},push=${{ inputs.push }},push-by-digest=true,name-canonical=true
