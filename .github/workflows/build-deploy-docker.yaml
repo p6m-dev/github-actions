@@ -103,6 +103,13 @@ jobs:
           username: ${{ secrets.username }}
           password: ${{ secrets.password }}
 
+      - name: Configure sccache
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v6
@@ -111,10 +118,15 @@ jobs:
           file: ${{ inputs.dockerfile }}
           platforms: ${{ matrix.platform }}
           cache-from: type=gha,scope=${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
-          build-args: ${{ inputs.build-args }}
+          cache-to: type=gha,mode=min,scope=${{ matrix.arch }}
+          build-args: |
+            ${{ inputs.build-args }}
+            SCCACHE_GHA_ENABLED=on
+            ACTIONS_RESULTS_URL=${{ env.ACTIONS_RESULTS_URL }}
           secrets: ${{ secrets.secrets }}
-          secret-envs: ${{ secrets.secret-envs }}
+          secret-envs: |
+            ${{ secrets.secret-envs }}
+            ACTIONS_RUNTIME_TOKEN=ACTIONS_RUNTIME_TOKEN
           secret-files: ${{ secrets.secret-files }}
           outputs: |
             type=image,name=${{ env.DOCKER_REGISTRY }}/${{ inputs.image-name }},push=${{ inputs.push }},push-by-digest=true,name-canonical=true
