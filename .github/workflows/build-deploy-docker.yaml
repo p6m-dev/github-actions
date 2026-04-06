@@ -39,22 +39,22 @@ on:
       context:
         description: The path to the Docker context to build.
         type: string
-        default: '.'
+        default: "."
         required: false
       dockerfile:
         description: The absolute path to the Dockerfile to build.
         type: string
-        default: './Dockerfile'
+        default: "./Dockerfile"
         required: false
       build-args:
         description: Build Args to pass to the docker build in key=value format (one per line).
         type: string
-        default: ''
+        default: ""
         required: false
       tags:
         description: The tags to apply to the final multi-arch image. Uses the same format as docker/metadata-action.
         type: string
-        default: ''
+        default: ""
         required: true
       linux-arm-runner:
         description: The `runs-on` tag for the linux arm64 runner. Defaults to the Github standard runner.
@@ -81,7 +81,7 @@ jobs:
           - runner: ubuntu-latest
             platform: linux/amd64
             arch: amd64
-          
+
     name: Docker Build (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}
 
@@ -92,7 +92,7 @@ jobs:
 
       - name: Docker Setup QEMU
         uses: docker/setup-qemu-action@v3
-        
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -121,7 +121,6 @@ jobs:
           cache-to: type=gha,mode=min,scope=${{ matrix.arch }}
           build-args: |
             ${{ inputs.build-args }}
-            SCCACHE_GHA_ENABLED=on
             ACTIONS_RESULTS_URL=${{ env.ACTIONS_RESULTS_URL }}
           secrets: ${{ secrets.secrets }}
           secret-envs: |
@@ -209,4 +208,3 @@ jobs:
           echo "```" >> $GITHUB_STEP_SUMMARY
           echo  "$DOCKER_METADATA_OUTPUT_TAGS" >> $GITHUB_STEP_SUMMARY
           echo "```" >> $GITHUB_STEP_SUMMARY
-
