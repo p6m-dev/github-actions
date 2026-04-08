@@ -18,12 +18,15 @@ on:
         required: false
         default: |
           "crates-io" # Default to the public registry
+      version_bump_type:
+        description: The version bump type after publishing. Use "beta" for pre-release bumps (x.y.z-beta.N), "patch" for stable patch bumps (x.y.z), or "minor"/"major" for larger bumps.
+        type: string
+        required: false
+        default: beta
 
 env:
   CARGO_TERM_COLOR: always
   CARGO_RELEASE_VERSION: 0.25.10
-  COMMIT_USER: github-actions
-  COMMIT_EMAIL: github-actions@users.noreply.github.com
 
 jobs:
   prep:
@@ -85,18 +88,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: p6m-actions/token-exchange@v2
+
       - name: Install cargo-release
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
           version: ${{ env.CARGO_RELEASE_VERSION }}
 
-      - name: Prepare next Cargo beta
+      - name: Prepare next version
         run: |
-          git config user.name ${{ env.COMMIT_USER }}
-          git config user.email ${{ env.COMMIT_EMAIL }}
           cargo release tag --no-confirm --execute
-          cargo release version --no-confirm --execute beta
+          cargo release version --no-confirm --execute ${{ inputs.version_bump_type }}
           cargo release commit --no-confirm --execute
 
       - name: Push
