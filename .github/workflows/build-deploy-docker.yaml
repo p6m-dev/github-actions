@@ -118,7 +118,7 @@ jobs:
           file: ${{ inputs.dockerfile }}
           platforms: ${{ matrix.platform }}
           cache-from: type=gha,scope=${{ matrix.arch }}
-          cache-to: type=gha,mode=min,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
           build-args: |
             ${{ inputs.build-args }}
             ACTIONS_RESULTS_URL=${{ env.ACTIONS_RESULTS_URL }}
