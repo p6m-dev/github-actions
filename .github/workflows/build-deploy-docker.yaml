@@ -57,10 +57,10 @@ on:
         default: ""
         required: true
       linux-arm-runner:
-        description: The `runs-on` tag for the linux arm64 runner. Defaults to the Github standard runner.
+        description: The `runs-on` tag for the linux arm64 runner. Defaults to the GitHub-hosted arm64 runner (ubuntu-24.04-arm), which builds arm64 natively instead of under QEMU emulation.
         type: string
         required: false
-        default: ubuntu-latest
+        default: ubuntu-24.04-arm
       push:
         description: Whether to push the built images to the registry. Set to false to only refresh cache.
         type: boolean
@@ -86,25 +86,25 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_ref }}
 
       - name: Docker Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to Docker Repo
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
           username: ${{ secrets.username }}
           password: ${{ secrets.password }}
 
       - name: Configure sccache
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL || '');
@@ -112,7 +112,7 @@ jobs:
 
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
@@ -136,7 +136,7 @@ jobs:
           echo "${{ steps.build.outputs.digest }}" > ${RUNNER_TEMP}/digests/digest-${{ matrix.arch }}.txt
 
       - name: Upload Image Digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: digests-${{ matrix.arch }}
           path: ${{ runner.temp }}/digests/*
@@ -155,14 +155,14 @@ jobs:
 
     steps:
       - name: Download Image Digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ${{ runner.temp }}/digests
           pattern: digests-*
           merge-multiple: true
 
       - name: Login to Docker Repo
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
           username: ${{ secrets.username }}
@@ -170,7 +170,7 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v6
         with:
           images: |
             ${{ env.DOCKER_REGISTRY }}/${{ inputs.image-name }}
