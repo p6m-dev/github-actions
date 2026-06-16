@@ -66,6 +66,7 @@ jobs:
       - name: Install dependencies
         if: steps.pnpm-cache.outputs.cache-hit != 'true'
         run: |
+          pnpm config set '//${{ vars.ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/p6m-dev-npm/:_auth' "$ARTIFACTORY_TOKEN"
           pnpm config set '//${{ vars.ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/${{ github.repository_owner }}-npm/:_auth' "$ARTIFACTORY_TOKEN"
           pnpm install
 
