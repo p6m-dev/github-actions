@@ -63,7 +63,9 @@ jobs:
 
       - name: Install dependencies
         if: steps.pnpm-cache.outputs.cache-hit != 'true'
-        run: pnpm install
+        run: |
+          pnpm config set '//${{ vars.ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/${{ github.repository_owner }}-npm/:_auth' "$ARTIFACTORY_TOKEN"
+          pnpm install
 
       - name: Fetch main
         run: git fetch origin main
