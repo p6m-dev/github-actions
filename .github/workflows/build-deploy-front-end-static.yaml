@@ -51,7 +51,9 @@ jobs:
           node-version: 16
 
       - name: Install pnpm
-        run: npm install -g pnpm
+        run: |
+          npm install -g pnpm
+          echo "PNPM Version: $(pnpm --version)" >> $GITHUB_STEP_SUMMARY
 
       - name: Get pnpm cache directory path
         id: pnpm-cache-dir-path
@@ -70,7 +72,10 @@ jobs:
 
       - name: Install dependencies
         if: steps.pnpm-cache.outputs.cache-hit != 'true'
-        run: pnpm install
+        run: |
+          pnpm config set '//${{ vars.ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/p6m-dev-npm/:_auth' "$ARTIFACTORY_TOKEN"
+          pnpm config set '//${{ vars.ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/${{ github.repository_owner }}-npm/:_auth' "$ARTIFACTORY_TOKEN"
+          pnpm install
 
       - name: Test
         run: |
