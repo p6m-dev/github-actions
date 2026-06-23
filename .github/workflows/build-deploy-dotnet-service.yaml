@@ -13,7 +13,6 @@ on:
       ARTIFACTORY_IDENTITY_TOKEN:
         description: The password to use to authenticate with the Docker registry.
         required: true
-
       UPDATE_MANIFEST_TOKEN:
         description: The token to use to push the new image digest to the .platform repo.
         required: true
@@ -28,6 +27,11 @@ on:
         type: string
         required: false
         default: "8.0"
+      DOTNET_PROJECT:
+        description: Path to the .csproj file to publish (if not specified, publishes the solution)
+        type: string
+        required: false
+        default: ""
       ARTIFACTORY_HOSTNAME:
         description: The hostname of the Docker registry as you would enter it for the `docker login` command.
         type: string
@@ -60,7 +64,6 @@ jobs:
   build:
     name: Build
     outputs:
-    #   version: ${{ steps.pkg-version.outputs.VERSION }}
       digest: ${{ steps.docker_build.outputs.digest }}
     runs-on: ubuntu-latest
 
@@ -91,8 +94,16 @@ jobs:
       - name: Build
         run: |
           dotnet restore
-          dotnet build -c Release --no-restore 
-          dotnet publish -c Release -o ./publish
+          dotnet build -c Release --no-restore
+
+          # If a specific project is specified, publish that project; otherwise publish the solution
+          if [ -n "${{ inputs.DOTNET_PROJECT }}" ]; then
+            echo "Publishing specific project: ${{ inputs.DOTNET_PROJECT }}"
+            dotnet publish "${{ inputs.DOTNET_PROJECT }}" -c Release -o ./publish --no-build
+          else
+            echo "Publishing entire solution"
+            dotnet publish -c Release -o ./publish --no-build
+          fi
 
       - name: Test
         run: dotnet test -c Release --no-build --verbosity normal  
@@ -132,7 +143,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      
+
       - name: Get TAG version
         if: github.ref_name == 'main'
         id: TAG
@@ -175,7 +186,6 @@ jobs:
 
           # Construct the new version
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-
           echo "New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
@@ -196,13 +206,13 @@ jobs:
           echo "${{ steps.docker_build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
           echo "### Release Version" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.TAG.outputs.release_version }}" >> $GITHUB_STEP_SUMMARY
-      
+
       - name: Prepare Artifact
         if: github.ref_name == 'main'
         run: |
           echo "${{ steps.docker_build.outputs.digest }}" >> digest.txt
-      
-      - name: Create Github Release 
+
+      - name: Create Github Release
         if: github.ref_name == 'main'
         uses: ncipollo/release-action@v1.12.0
         with:
