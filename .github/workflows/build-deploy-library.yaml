@@ -17,7 +17,7 @@ on:
         type: string
 
 env:
-  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.ARTIFACTORY_HOSTNAME }}
+  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.P6M_ARTIFACTORY_HOSTNAME }}
 
 jobs:
   build_and_publish_snapshots:

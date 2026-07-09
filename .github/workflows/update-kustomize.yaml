@@ -15,7 +15,7 @@ permissions:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.ARTIFACTORY_HOSTNAME }}
+  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.P6M_ARTIFACTORY_HOSTNAME }}
 
 jobs:
   update-image-digest:
@@ -128,7 +128,7 @@ jobs:
         uses: p6m-actions/p6m-release-action@v2
         env:
           PLATFORM_TOKEN_EXCHANGE_URL: https://auth.p6m.dev/api/github/actions/token-exchange
-          PLATFORM_INSTALLATION_ID: ${{ vars.PLATFORM_INSTALLATION_ID }}
+          PLATFORM_INSTALLATION_ID: ${{ vars.P6M_PLATFORM_INSTALLATION_ID }}
         with:
           tags: "" # No tags
           commit_message: "[skip ci] Update ${{ github.event.client_payload.directory_name }} image digest to ${{ github.event.client_payload.digest }}"

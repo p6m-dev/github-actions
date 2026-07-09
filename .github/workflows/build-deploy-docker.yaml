@@ -68,7 +68,7 @@ on:
         default: true
 
 env:
-  DOCKER_REGISTRY: ${{ inputs.registry || vars.ARTIFACTORY_HOSTNAME }}
+  DOCKER_REGISTRY: ${{ inputs.registry || vars.P6M_ARTIFACTORY_HOSTNAME }}
 
 jobs:
   build:
