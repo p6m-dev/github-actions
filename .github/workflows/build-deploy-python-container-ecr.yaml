@@ -139,10 +139,10 @@ jobs:
         run: |
           echo github.ref= ${{ github.ref }}
           echo digest = ${{ steps.build-push.outputs.digest }}
-          echo platform_dispatch_url = ${{ vars.PLATFORM_DISPATCH_URL }}
+          echo platform_dispatch_url = ${{ vars.P6M_PLATFORM_DISPATCH_URL }}
           curl -X POST \
             -H "Accept: application/vnd.github.everest-preview+json" \
             -H "Authorization: token ${{ secrets.UPDATE_MANIFEST_TOKEN }}" \
-            ${{ vars.PLATFORM_DISPATCH_URL }} \
+            ${{ vars.P6M_PLATFORM_DISPATCH_URL }} \
             --fail-with-body \
             -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"registry\": \"ecr\", \"account_id\": \"${{ vars.AWS_ACCOUNT_ID }}\", \"region\": \"us-east-2\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"dev\", \"digest\": \"${{ steps.build-push.outputs.digest }}\"}}"

@@ -16,7 +16,7 @@ on:
         value: ${{ jobs.tag_version.outputs.tag_name }}
 
 env:
-  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.ARTIFACTORY_HOSTNAME }}
+  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_HOSTNAME || vars.P6M_ARTIFACTORY_HOSTNAME }}
 
 jobs:
   tag_version:

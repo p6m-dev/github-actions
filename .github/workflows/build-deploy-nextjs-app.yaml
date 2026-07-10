@@ -46,7 +46,7 @@ env:
   UPDATE_MANIFEST_TOKEN: ${{ secrets.UPDATE_MANIFEST_TOKEN }}
   ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
   REACT_APP_ENV: ${{ inputs.REACT_APP_ENV }}
-  ARTIFACTORY_REGISTRY: ${{ inputs.ARTIFACTORY_REGISTRY || vars.ARTIFACTORY_HOSTNAME}}
+  ARTIFACTORY_REGISTRY: ${{ inputs.ARTIFACTORY_REGISTRY || vars.P6M_ARTIFACTORY_HOSTNAME}}
   CONTENTFUL_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN || '' }}
   CONTENTFUL_PREVIEW_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_PREVIEW_ACCESS_TOKEN || '' }}
   CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID || '' }}
@@ -97,8 +97,8 @@ jobs:
       - name: Install dependencies
         if: steps.pnpm-cache.outputs.cache-hit != 'true'
         run: |
-          pnpm config set '//${{ vars.ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/p6m-dev-npm/:_auth' "$ARTIFACTORY_TOKEN"
-          pnpm config set '//${{ vars.ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/${{ github.repository_owner }}-npm/:_auth' "$ARTIFACTORY_TOKEN"
+          pnpm config set '//${{ vars.P6M_ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/p6m-dev-npm/:_auth' "$ARTIFACTORY_TOKEN"
+          pnpm config set '//${{ vars.P6M_ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/${{ github.repository_owner }}-npm/:_auth' "$ARTIFACTORY_TOKEN"
           pnpm install
 
       - name: Test
@@ -144,12 +144,12 @@ jobs:
             echo "Trigger Update Image Digest..."
             echo "Github ref: ${{ github.ref }}"
             echo "Image digest: $(cat ./node_modules/.cache/nx-container/$APP/digest)"
-            echo ${{ vars.PLATFORM_DISPATCH_URL }}
+            echo ${{ vars.P6M_PLATFORM_DISPATCH_URL }}
             curl -X POST \
               -vvvv \
               -H "Accept: application/vnd.github.everest-preview+json" \
               -H "Authorization: token ${{ secrets.UPDATE_MANIFEST_TOKEN }}" \
-              ${{ vars.PLATFORM_DISPATCH_URL }} \
+              ${{ vars.P6M_PLATFORM_DISPATCH_URL }} \
               --fail-with-body \
               -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"dev\", \"digest\": \"$(cat ./node_modules/.cache/nx-container/$APP/digest)\"}}"
             rm -rf .nx-container

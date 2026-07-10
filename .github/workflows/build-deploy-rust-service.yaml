@@ -71,10 +71,10 @@ on:
         description: 'The installation ID of the p6m-ybor app for the github org.'
         type: string
         required: false
-        default: ${{ vars.PLATFORM_INSTALLATION_ID }}
+        default: ${{ vars.P6M_PLATFORM_INSTALLATION_ID }}
 env:
   CARGO_TERM_COLOR: always
-  DOCKER_REGISTRY: ${{ inputs.DOCKER_REGISTRY || vars.ARTIFACTORY_HOSTNAME}}
+  DOCKER_REGISTRY: ${{ inputs.DOCKER_REGISTRY || vars.P6M_ARTIFACTORY_HOSTNAME}}
 
 jobs:
   current_version:
@@ -105,7 +105,7 @@ jobs:
 
     uses: p6m-dev/github-actions/.github/workflows/build-deploy-docker.yaml@main
     with:
-      registry: ${{ inputs.DOCKER_REGISTRY || vars.ARTIFACTORY_HOSTNAME}}
+      registry: ${{ inputs.DOCKER_REGISTRY || vars.P6M_ARTIFACTORY_HOSTNAME}}
       image-name: ${{ inputs.DOCKER_IMAGE_NAME }}
       context: ${{ inputs.DOCKER_CONTEXT }}
       dockerfile: ${{ inputs.DOCKERFILE }}
@@ -218,11 +218,11 @@ jobs:
         run: |
           echo ${{ github.ref }}
           echo ${{ needs.build.outputs.digest }}
-          echo ${{ vars.PLATFORM_DISPATCH_URL }}
+          echo ${{ vars.P6M_PLATFORM_DISPATCH_URL }}
           curl -X POST \
             -H "Accept: application/vnd.github.everest-preview+json" \
             -H "Authorization: token ${{ secrets.UPDATE_MANIFEST_TOKEN }}" \
-            ${{ vars.PLATFORM_DISPATCH_URL }} \
+            ${{ vars.P6M_PLATFORM_DISPATCH_URL }} \
             --fail-with-body \
             -d "{\"event_type\": \"update-digest\", \"client_payload\": {\"repository\": \"${GITHUB_REPOSITORY}\", \"directory_name\": \"$(basename ${GITHUB_REPOSITORY})\", \"environment_dir\": \"dev\", \"digest\": \"${{ needs.build.outputs.digest }}\"}}"
       

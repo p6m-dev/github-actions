@@ -44,7 +44,7 @@ env:
   CONTENTFUL_ENVIRONMENT_ID: ${{ secrets.CONTENTFUL_ENVIRONMENT_ID || '' }}
   INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   NODE_OPTIONS: "--max_old_space_size=4096"
-  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_REGISTRY || vars.ARTIFACTORY_HOSTNAME }}
+  ARTIFACTORY_HOSTNAME: ${{ inputs.ARTIFACTORY_REGISTRY || vars.P6M_ARTIFACTORY_HOSTNAME }}
 
 jobs:
   tag_version:
@@ -93,8 +93,8 @@ jobs:
       - name: Install dependencies
         if: steps.pnpm-cache.outputs.cache-hit != 'true'
         run: |
-          pnpm config set '//${{ vars.ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/p6m-dev-npm/:_auth' "$ARTIFACTORY_TOKEN"
-          pnpm config set '//${{ vars.ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/${{ github.repository_owner }}-npm/:_auth' "$ARTIFACTORY_TOKEN"
+          pnpm config set '//${{ vars.P6M_ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/p6m-dev-npm/:_auth' "$ARTIFACTORY_TOKEN"
+          pnpm config set '//${{ vars.P6M_ARTIFACTORY_HOSTNAME }}/artifactory/api/npm/${{ github.repository_owner }}-npm/:_auth' "$ARTIFACTORY_TOKEN"
           pnpm install
       
       - name: Get Tag Version
