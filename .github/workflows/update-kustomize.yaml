@@ -57,12 +57,21 @@ jobs:
           else
             RESOURCE_BASE="${{ github.event.client_payload.repository }}"
           fi
+
+          # In-repo directory holding the per-environment folders. Overrides the hard-coded prefix
+          # so monorepos can point at a sub-application (e.g. .platform/kubernetes/<app>).
+          # Empty => ".platform/kubernetes" (unchanged single-app behavior).
+          RESOURCE_BASE_PATH="${{ github.event.client_payload.resource_base_path }}"
+          if [ -z "$RESOURCE_BASE_PATH" ]; then
+            RESOURCE_BASE_PATH=".platform/kubernetes"
+          fi
+
           cat > kustomization.yaml << EndOfMessage
           apiVersion: kustomize.config.k8s.io/v1beta1
           kind: Kustomization
 
           resources:
-            - https://github.com/${RESOURCE_BASE}/.platform/kubernetes/${{ github.event.client_payload.environment_dir }}
+            - https://github.com/${RESOURCE_BASE}/${RESOURCE_BASE_PATH}/${{ github.event.client_payload.environment_dir }}
           EndOfMessage
 
           if [ -z "${{ github.event.client_payload.image_name }}" ]; then
