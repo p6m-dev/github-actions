@@ -1,0 +1,56 @@
+{
+  "recorded_from": "alpine:3.20",
+  "pinned": "alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc",
+  "index_digest": "sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc",
+  "note": "Negative control: no CUDA metadata at all. Must be CANNOT-VERIFY, never a silent pass.",
+  "platforms": [
+    {
+      "platform": "linux/amd64",
+      "arch": "amd64",
+      "digest": "sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e",
+      "env": {}
+    },
+    {
+      "platform": "linux/arm",
+      "arch": "arm",
+      "digest": "sha256:37753b2965043543542cd9d48cba044151052ca14fa72e6cbec4edf2a1490599",
+      "env": {}
+    },
+    {
+      "platform": "linux/arm",
+      "arch": "arm",
+      "digest": "sha256:bd05c4d38cbeb5cfb34883906276560353a6b0282fb5c4b9dd3bd40f5143d7c3",
+      "env": {}
+    },
+    {
+      "platform": "linux/arm64",
+      "arch": "arm64",
+      "digest": "sha256:45e09956dc667c5eff3583c9d94830261fb1ca0be10a0a7db36266edf5de9e1d",
+      "env": {}
+    },
+    {
+      "platform": "linux/386",
+      "arch": "386",
+      "digest": "sha256:4ec3ead63e75e791660b5abc4dc3bd85ebb6fc24a10d649ba05991bf34b5e80e",
+      "env": {}
+    },
+    {
+      "platform": "linux/ppc64le",
+      "arch": "ppc64le",
+      "digest": "sha256:80529c2d621d6271966cfa680d104ca55349a3b1fc7a567bc7e25349a1f2f6cb",
+      "env": {}
+    },
+    {
+      "platform": "linux/riscv64",
+      "arch": "riscv64",
+      "digest": "sha256:c47cbcc0d9c7f68d8e19c8e4eb50252ff9722e504108d69e8c36d510e921fc26",
+      "env": {}
+    },
+    {
+      "platform": "linux/s390x",
+      "arch": "s390x",
+      "digest": "sha256:856b20bf4946b5c8f43fc5b2ce46f39109914d9213a2832eb24cc01c76f27bbe",
+      "env": {}
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+
+# Action outputs, written at run time
+cuda-compat-report.json
