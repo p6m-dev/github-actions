@@ -1,0 +1,163 @@
+name: Test cuda-compat
+
+# Self-test for actions/cuda-compat. Unlike the build-deploy-* files in this
+# directory, this is not a reusable workflow — it runs this repo's own tests.
+
+on:
+  pull_request:
+    paths:
+      - "actions/cuda-compat/**"
+      - ".github/workflows/test-cuda-compat.yaml"
+  push:
+    branches: ["main"]
+    paths:
+      - "actions/cuda-compat/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: actions/cuda-compat/tests
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # cuda-compat.py is stdlib-only on purpose: no pip step, ever. If one
+      # appears here, the customer-runnable constraint has been broken.
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Offline suite (hermetic — logic only)
+        run: python3 -m unittest test_cuda_compat test_dsl_parity -v
+
+      - name: Mutation check (the suite must fail when the evaluator is wrong)
+        run: ./mutation_check.py
+
+      # Digest-pinned, so this cannot flake on a tag move — only on the registry
+      # being unreachable, which SKIPS loudly rather than passing quietly.
+      - name: Registry contract (fixtures still match the registry)
+        run: python3 -m unittest test_registry_contract -v
+
+      # PyYAML is for the CI-side resolver only. It must never become a
+      # dependency of cuda-compat.py, which stays runnable with bare python3.
+      - name: Targets resolver
+        run: |
+          pip install "pyyaml==6.0.3"
+          python3 -m unittest test_resolve_targets -v
+
+      - name: End-to-end smoke through the action's own entrypoint
+        working-directory: actions/cuda-compat
+        run: |
+          set -euo pipefail
+          # The estate's real case, asserted end to end: llmkube's stock default
+          # runtime image is COMPATIBLE on the declared-550 T4 pools via forward
+          # compatibility, and refused on a driver branch it does not enumerate.
+          # If these two ever disagree with the unit suite, the difference is in
+          # the fetch path, which the unit suite stubs.
+          python3 cuda-compat.py vllm/vllm-openai:v0.25.1 \
+            --target 't4=550.144.03/7.5/amd64/Tesla,Nvidia' --json > ok.json
+          python3 -c "
+          import json; r = json.load(open('ok.json'))
+          assert r['verdict'] == 'COMPATIBLE', r['verdict']
+          assert 'forward compatibility' in r['results'][0]['basis']
+          print('COMPATIBLE via forward compat, as expected')
+          "
+
+          set +e
+          python3 cuda-compat.py vllm/vllm-openai:v0.25.1 \
+            --target 'mid=545.23.08/7.5/amd64/Tesla' --json > bad.json
+          rc=$?
+          set -e
+          test $rc -eq 1 || { echo "expected exit 1, got $rc"; exit 1; }
+          python3 -c "
+          import json; r = json.load(open('bad.json'))
+          assert r['verdict'] == 'INCOMPATIBLE', r['verdict']
+          print('INCOMPATIBLE on an unenumerated branch, as expected')
+          "
+
+      - name: Report rendering
+        working-directory: actions/cuda-compat
+        run: |
+          python3 report.py --markdown ok.json >> "$GITHUB_STEP_SUMMARY"
+          test "$(python3 report.py --verdict ok.json)" = "COMPATIBLE"
+
+  # The action's own contract, exercised by really invoking it. Composite
+  # `shell: bash` runs with -e while the checker exits 1 and 2 as VERDICTS, so
+  # the shell is one missing `|| rc=$?` away from aborting mid-step and emitting
+  # an empty verdict — silently, and only for the non-COMPATIBLE cases the tool
+  # exists to report. Nothing in the Python suite can see that; only a real
+  # invocation can. Every verdict must produce complete outputs.
+  action-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: COMPATIBLE — step passes, outputs populated
+        id: compatible
+        uses: ./actions/cuda-compat
+        with:
+          images: vllm/vllm-openai:v0.25.1
+          targets: t4=550.144.03/7.5/amd64/Tesla,Nvidia
+          report-path: compatible.json
+
+      - name: INCOMPATIBLE — step fails, outputs still populated
+        id: incompatible
+        continue-on-error: true
+        uses: ./actions/cuda-compat
+        with:
+          images: vllm/vllm-openai:v0.25.1
+          targets: mid=545.23.08/7.5/amd64/Tesla
+          report-path: incompatible.json
+
+      - name: CANNOT-VERIFY — step passes with a warning by default
+        id: unknown
+        uses: ./actions/cuda-compat
+        with:
+          images: alpine:3.20
+          targets: t4=550.144.03/7.5/amd64/Tesla,Nvidia
+          report-path: unknown.json
+
+      - name: CANNOT-VERIFY under strict-unknown — step fails
+        id: unknown_strict
+        continue-on-error: true
+        uses: ./actions/cuda-compat
+        with:
+          images: alpine:3.20
+          targets: t4=550.144.03/7.5/amd64/Tesla,Nvidia
+          strict-unknown: "true"
+          report-path: unknown-strict.json
+
+      - name: Assert the contract
+        env:
+          INCOMPATIBLE_SUMMARY: ${{ steps.incompatible.outputs.summary }}
+          UNKNOWN_SUMMARY: ${{ steps.unknown.outputs.summary }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+
+          [ "${{ steps.compatible.outputs.verdict }}" = "COMPATIBLE" ] || fail "compatible verdict"
+          [ "${{ steps.compatible.outputs.exit-code }}" = "0" ] || fail "compatible exit-code"
+          [ "${{ steps.compatible.outcome }}" = "success" ] || fail "compatible outcome"
+
+          # These are the ones an -e abort would leave empty.
+          [ "${{ steps.incompatible.outputs.verdict }}" = "INCOMPATIBLE" ] || fail "INCOMPATIBLE verdict missing — the -e trap is back"
+          [ "${{ steps.incompatible.outputs.exit-code }}" = "1" ] || fail "incompatible exit-code"
+          [ "${{ steps.incompatible.outcome }}" = "failure" ] || fail "incompatible must fail the step"
+          [ -n "$INCOMPATIBLE_SUMMARY" ] || fail "incompatible summary empty"
+
+          [ "${{ steps.unknown.outputs.verdict }}" = "CANNOT-VERIFY" ] || fail "cannot-verify verdict missing"
+          [ "${{ steps.unknown.outputs.exit-code }}" = "2" ] || fail "cannot-verify exit-code"
+          [ "${{ steps.unknown.outcome }}" = "success" ] || fail "cannot-verify must not fail the step by default"
+          [ -n "$UNKNOWN_SUMMARY" ] || fail "cannot-verify summary empty"
+
+          [ "${{ steps.unknown_strict.outcome }}" = "failure" ] || fail "strict-unknown must fail the step"
+          [ "${{ steps.unknown_strict.outputs.verdict }}" = "CANNOT-VERIFY" ] || fail "strict verdict missing"
+
+          echo "action contract holds for all four verdict/strictness combinations"

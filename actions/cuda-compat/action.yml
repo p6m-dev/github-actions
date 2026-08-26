@@ -1,0 +1,117 @@
+name: CUDA compatibility check
+description: >-
+  Verdict on whether container images will run on given GPU driver/SKU classes,
+  by evaluating their NVIDIA_REQUIRE_* metadata the way nvidia-container-cli does
+  at container start. Static analysis: no cluster, no GPU, no image pull.
+author: p6m
+
+inputs:
+  images:
+    description: >-
+      Images to check, whitespace- or newline-separated. Digest-pinned refs are
+      preferred — a verdict on a moving tag is a verdict on whatever it pointed
+      at during this run.
+    required: true
+  targets:
+    description: >-
+      Target classes, whitespace- or newline-separated, each
+      [LABEL=]DRIVER[/CC[/ARCH[/BRAND,BRAND]]] — e.g.
+      playground-t4=550.144.03/7.5/amd64/Tesla,Nvidia. Prefer full driver
+      versions: a bare branch cannot settle a comparison against a finer version
+      and will report so rather than guess. resolve-targets.py derives these
+      mechanically from platform-versions.
+    required: true
+  strict-unknown:
+    description: >-
+      What to do with CANNOT-VERIFY (exit 2). "false" (default) annotates a
+      warning and lets the step pass; "true" fails the step. INCOMPATIBLE always
+      fails the step regardless. Note the asymmetry is deliberate: an unverified
+      image is not a broken one, but it is also not a checked one.
+    required: false
+    default: "false"
+  report-path:
+    description: Where to write the JSON report. Also uploaded as a step output.
+    required: false
+    default: cuda-compat-report.json
+
+outputs:
+  verdict:
+    description: COMPATIBLE | INCOMPATIBLE | CANNOT-VERIFY — the worst across all pairs.
+    value: ${{ steps.check.outputs.verdict }}
+  exit-code:
+    description: 0 compatible, 1 incompatible, 2 cannot-verify.
+    value: ${{ steps.check.outputs.exit-code }}
+  report:
+    description: Path to the JSON report.
+    value: ${{ steps.check.outputs.report }}
+  summary:
+    description: One-line-per-pair markdown table, for issue bodies and PR comments.
+    value: ${{ steps.check.outputs.summary }}
+
+runs:
+  using: composite
+  steps:
+    - name: cuda-compat
+      id: check
+      shell: bash
+      env:
+        # Registry credentials belong here in the wrapper if they are ever needed
+        # (YP6M-3480, parked) — never in cuda-compat.py, which must stay runnable
+        # by anyone with nothing but python3.
+        CC_IMAGES: ${{ inputs.images }}
+        CC_TARGETS: ${{ inputs.targets }}
+        CC_STRICT: ${{ inputs.strict-unknown }}
+        CC_REPORT: ${{ inputs.report-path }}
+      run: |
+        # Composite `shell: bash` runs with -e. The checker exits 1 and 2 as
+        # VERDICTS, not failures, so its status must be caught explicitly —
+        # otherwise -e kills the step mid-way and the verdict, outputs and
+        # summary are never produced, precisely for the non-COMPATIBLE cases.
+        # Do not "simplify" the `|| rc=$?` below into a bare call.
+        set -uo pipefail
+
+        args=()
+        for image in $CC_IMAGES; do args+=("$image"); done
+        for target in $CC_TARGETS; do args+=(--target "$target"); done
+        if [ ${#args[@]} -eq 0 ]; then
+          echo "::error::cuda-compat: no images or targets given"
+          exit 1
+        fi
+
+        # Run ONCE. Every extra invocation is another round of registry fetches,
+        # and on a scheduled sweep over the whole estate that adds up.
+        rc=0
+        python3 "${{ github.action_path }}/cuda-compat.py" "${args[@]}" --json > "$CC_REPORT" || rc=$?
+        # Exit 0/1/2 are verdicts. Anything else is the tool failing, not the
+        # images — never let that read as a pass.
+        if [ $rc -gt 2 ]; then
+          echo "::error::cuda-compat exited $rc (tool failure, not a verdict)"
+          cat "$CC_REPORT" || true
+          exit $rc
+        fi
+
+        python3 "${{ github.action_path }}/report.py" --text "$CC_REPORT"
+        verdict=$(python3 "${{ github.action_path }}/report.py" --verdict "$CC_REPORT")
+        summary=$(python3 "${{ github.action_path }}/report.py" --markdown "$CC_REPORT")
+
+        {
+          echo "verdict=$verdict"
+          echo "exit-code=$rc"
+          echo "report=$CC_REPORT"
+          echo "summary<<CUDA_COMPAT_EOF"
+          echo "$summary"
+          echo "CUDA_COMPAT_EOF"
+        } >> "$GITHUB_OUTPUT"
+
+        echo "$summary" >> "$GITHUB_STEP_SUMMARY"
+
+        case "$rc" in
+          0) echo "::notice::cuda-compat: COMPATIBLE" ;;
+          1) echo "::error::cuda-compat: INCOMPATIBLE — see the report for the failing constraint"
+             exit 1 ;;
+          2) if [ "$CC_STRICT" = "true" ]; then
+               echo "::error::cuda-compat: CANNOT-VERIFY and strict-unknown is set"
+               exit 1
+             fi
+             echo "::warning::cuda-compat: CANNOT-VERIFY — a verdict could not be reached; this is an unchecked image, not a passing one" ;;
+        esac
