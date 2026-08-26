@@ -1,0 +1,142 @@
+# Azure GPU model (karpenter-provisioners gpu.skuGpuNames) -> the facts a verdict needs.
+#
+# Engineers never hand-enter a compute capability. They declare a SKU family, and
+# this table turns it into the compute capability, the NVML brand(s) the GPU may
+# report, and the oldest driver branch that can drive that silicon at all.
+#
+# FAIL-HONEST: a GPU name not listed here yields CANNOT-VERIFY for that pool.
+# One reviewed line per silicon generation, never one per pool.
+#
+# Fields:
+#   compute_capability  NVIDIA's `arch` property, matched against the image's
+#                       TORCH_CUDA_ARCH_LIST and any arch= requirement term.
+#   brands              Every NVML brand string this GPU may report. Datacenter
+#                       parts moved from "Tesla" to "Nvidia" across driver
+#                       branches, so both are listed and a verdict must hold for
+#                       ALL of them or it is not issued. Values are the exact
+#                       strings libnvidia-container produces (src/driver.c).
+#   min_driver_branch   The oldest driver branch that supports this architecture.
+#                       This is the guard against physically impossible targets:
+#                       CUDA forward compatibility gets a NEWER CUDA runtime onto
+#                       an OLDER driver, but it cannot teach a driver about
+#                       silicon that shipped after it. Without this, a hand-typed
+#                       target like 550/12.0 would be blessed COMPATIBLE by an
+#                       image's driver>=550,driver<551 term even though no 550
+#                       driver has ever seen a Blackwell GPU.
+#   driver_family       which driver karpenter-azure installs for this GPU:
+#                       "cuda" (default) or "grid". Upstream decides per VM SIZE
+#                       via ConvergedGPUDriverSizes; a row here is only correct
+#                       when EVERY Azure size carrying that GPU falls the same
+#                       way, which is checked when the row is added.
+#
+# min_driver_branch rows are hand-entered from NVIDIA's CUDA Toolkit release
+# notes (architecture support ↔ minimum driver). They are the least-verified
+# facts in this repo: each was reasoned from the CUDA release that introduced the
+# architecture, not measured. They can only ever cause a REFUSAL, never a false
+# COMPATIBLE, so the failure direction is safe — but treat a surprising
+# CANNOT-VERIFY here as a table bug worth checking before believing it.
+
+schema: cuda-compat/gpu-table/v1
+
+gpus:
+  T4:
+    compute_capability: "7.5"
+    generation: Turing
+    brands: [Tesla, Nvidia]
+    min_driver_branch: "418" # CUDA 10.0 introduced Turing support
+    reviewed: "2026-08-25"
+    note: The estate's only T4 pool today is ybor-playground (NC*as_T4_v3).
+
+  V100:
+    compute_capability: "7.0"
+    generation: Volta
+    brands: [Tesla, Nvidia]
+    min_driver_branch: "384" # CUDA 9.0
+    reviewed: "2026-08-25"
+    note: >-
+      Dropped by CUDA 13. An image built on CUDA 13 will still SATISFY the driver
+      check here via a forward-compat term, then fail at kernel load — which is
+      why the TORCH_CUDA_ARCH_LIST axis is reported separately.
+
+  A100:
+    compute_capability: "8.0"
+    generation: Ampere
+    brands: [Tesla, Nvidia]
+    min_driver_branch: "450" # CUDA 11.0
+    reviewed: "2026-08-25"
+
+  A10:
+    compute_capability: "8.6"
+    generation: Ampere
+    # EVERY Azure A10 size is in karpenter-azure's ConvergedGPUDriverSizes — both
+    # the NV*ads_A10_v5 visualization family and the NC*ads_A10_v4 compute family
+    # (pkg/utils/gpu.go). They take the converged/GRID driver, not the CUDA one,
+    # so the mapping from this GPU model to a driver family is exact rather than
+    # an approximation. Installing the vanilla CUDA driver on these fails.
+    driver_family: grid
+    driver_family_source: https://github.com/Azure/karpenter-provider-azure/blob/v1.12.2/pkg/utils/gpu.go
+    # The converged driver serves both compute and vGPU workloads, so the NVML
+    # brand depends on how the device is presented. The unanimity check is only
+    # sound when this set is a SUPERSET of what the GPU may report — under-listing
+    # is the fail-open direction, so list every plausible value.
+    brands: [Tesla, Nvidia, GRID, VWS, VApps]
+    min_driver_branch: "460" # CUDA 11.2
+    reviewed: "2026-08-25"
+    note: >-
+      The karpenter-provisioners chart default for gpu.skuGpuNames, so a
+      GPU-enabled VersionConfig that declares no SKU list resolves here.
+
+  A16:
+    compute_capability: "8.6"
+    generation: Ampere
+    brands: [Tesla, Nvidia]
+    min_driver_branch: "460"
+    reviewed: "2026-08-25"
+
+  A100_80GB:
+    compute_capability: "8.0"
+    generation: Ampere
+    brands: [Tesla, Nvidia]
+    min_driver_branch: "450"
+    reviewed: "2026-08-25"
+
+  L4:
+    compute_capability: "8.9"
+    generation: Ada Lovelace
+    brands: [Nvidia, Tesla]
+    min_driver_branch: "520" # CUDA 11.8
+    reviewed: "2026-08-25"
+
+  L40S:
+    compute_capability: "8.9"
+    generation: Ada Lovelace
+    brands: [Nvidia, Tesla]
+    min_driver_branch: "520"
+    reviewed: "2026-08-25"
+
+  H100:
+    compute_capability: "9.0"
+    generation: Hopper
+    brands: [Nvidia, Tesla]
+    min_driver_branch: "520" # CUDA 11.8
+    reviewed: "2026-08-25"
+
+  B200:
+    compute_capability: "10.0"
+    generation: Blackwell
+    brands: [Nvidia]
+    min_driver_branch: "570" # CUDA 12.8 introduced Blackwell support
+    reviewed: "2026-08-25"
+    note: >-
+      Arch-accelerated kernels for this part are sm_100a. cuda-compat parses the
+      suffix, but an image listing plain 10.0 cannot be distinguished from one
+      built with the accelerated paths — a COMPATIBLE verdict here means "starts
+      and has kernels for the family", not "has the FP4 fast paths".
+
+  RTX_PRO_6000_Blackwell:
+    compute_capability: "12.0"
+    generation: Blackwell (RTX)
+    brands: [Nvidia, NvidiaRTX]
+    min_driver_branch: "570"
+    reviewed: "2026-08-25"
+    note: Arch-accelerated kernels are sm_120a. Same caveat as B200.

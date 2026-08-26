@@ -1,0 +1,41 @@
+# Where an operator's BUILT-IN default images live, per chart.
+#
+# This table exists because of how YP6M-3479 started: llmkube's Installable pins
+# targetRevision: 0.9.*, its runtimeImages block is empty, and the images that
+# actually get deployed are compiled into the operator. A newer 0.9.x resolves,
+# its built-in defaults move, and no diff appears anywhere in git. There is no
+# PR to review, so a PR-triggered check can never see it — which is why the
+# scheduled run is the primary trigger and why this table is needed at all.
+#
+# FAIL-HONEST: a chart not listed here means the effective image set is
+# CANNOT-VERIFY. The right fix is a reviewed row, not a heuristic.
+
+schema: cuda-compat/operator-defaults/v1
+
+charts:
+  ghcr.io/defilantech/charts/llmkube:
+    source_repo: defilantech/LLMKube
+    # The chart's OCI config blob states appVersion exactly; this is how it maps
+    # to a source tag. Verified 2026-08-25: chart 0.9.20 -> appVersion 0.9.20.
+    tag_format: "v{appVersion}"
+    source_dir: internal/controller
+    file_pattern: "runtime_*.go"
+    # Extraction is deliberately narrow: a Go string literal that looks like an
+    # image ref, assigned to a constant or returned by DefaultImage(). If the
+    # file shape changes enough that fewer than this many are found, the whole
+    # resolution is refused rather than quietly checking a subset.
+    expect_at_least: 3
+    # Backends that are not NVIDIA at all. Their images are still listed in the
+    # report — named and explained, never silently dropped — but they are not
+    # sent for a CUDA verdict, where they would only produce CANNOT-VERIFY noise
+    # that trains readers to ignore the column.
+    non_nvidia_markers: [rocm, vulkan, cpu, metal]
+    # Where a values override would land, so an override and a built-in default
+    # can be told apart in the report.
+    override_path: runtimeImages
+    reviewed: "2026-08-25"
+    note: >-
+      Verified at v0.9.20: runtime_vllm.go pins vllm/vllm-openai:v0.25.1,
+      runtime_sglang.go pins lmsysorg/sglang:v0.5.15.post1-cu129, and
+      runtime_llamacpp.go pins ghcr.io/ggml-org/llama.cpp:server-cuda-b10068 for
+      CUDA plus ROCm and Vulkan variants for other accelerators.

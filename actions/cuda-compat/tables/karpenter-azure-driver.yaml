@@ -1,0 +1,46 @@
+# karpenter-azure chart/controller version -> the NVIDIA driver its node images ship.
+#
+# This is the authoritative source of a cloud pool's driver fact: the version is
+# a compile-time constant in the provider, so the pool gets whatever the pinned
+# chart says, regardless of what any label claims. A VersionConfig's declared
+# gpu.cudaDriverMajor is CROSS-CHECKED against this table, never trusted over it —
+# a disagreement is reported as a contradiction rather than silently resolved.
+#
+# FAIL-HONEST: a version not listed here yields CANNOT-VERIFY for every pool
+# pinned to it. Never interpolate between rows and never assume the driver
+# carried forward — v1.7.2 and v1.12.2 happen to ship the same driver, which is
+# exactly the coincidence that would make a guess look right until it wasn't.
+#
+# To add a row (one reviewed line per karpenter-azure bump):
+#   gh api 'repos/Azure/karpenter-provider-azure/contents/pkg/utils/gpu.go?ref=<TAG>' \
+#     --jq '.content' | base64 -d | grep -i DriverVersion
+# Paste the constants below with the tag you read them from.
+
+schema: cuda-compat/driver-table/v1
+
+versions:
+  "1.7.2":
+    cuda: "550.144.03" # NvidiaCudaDriverVersion — NC-series and other compute SKUs
+    grid: "550.144.06" # NvidiaGridDriverVersion — NV-series visualization SKUs
+    legacy_470: "470.82.01" # Nvidia470CudaDriverVersion — only for SKUs pinned to the 470 branch
+    source: https://github.com/Azure/karpenter-provider-azure/blob/v1.7.2/pkg/utils/gpu.go
+    reviewed: "2026-08-25"
+
+  "1.12.2":
+    cuda: "550.144.03"
+    grid: "550.144.06"
+    legacy_470: "470.82.01"
+    source: https://github.com/Azure/karpenter-provider-azure/blob/v1.12.2/pkg/utils/gpu.go
+    reviewed: "2026-08-25"
+
+# Which of the three a pool actually gets depends on the SKU family: the provider
+# picks the GRID driver for visualization (NV-series) sizes and the CUDA driver
+# otherwise. The estate runs NC-series today, so the resolver uses `cuda` and
+# REFUSES rather than guessing if a pool's GPU is marked grid_only in
+# gpu-compute-capability.yaml.
+sku_family_rule:
+  default: cuda
+  note: >-
+    UseGridDrivers(size) in pkg/utils/gpu.go decides this upstream. If an
+    NV-series pool ever appears, add the family test here rather than teaching
+    the resolver to guess from the GPU name.
