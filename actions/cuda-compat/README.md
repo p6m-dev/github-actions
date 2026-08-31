@@ -82,10 +82,29 @@ facts are refused outright — `--from-node` will not verdict a node whose obser
 driver disagrees with its declared label.
 
 `resolve-targets.py` derives targets mechanically from `platform-versions`, so a
-new pool is covered the moment its VersionConfig merges — provided its
-karpenter-azure tag and GPU model already have reviewed table rows. If either is
-missing the pool is **refused by name**, never skipped. Nothing is hand-registered,
-and Azure is the only cloud modelled today.
+new pool is covered the moment its VersionConfig merges. One target class per
+rendered **pool** per GPU model:
+
+| cloud | where the driver comes from |
+|---|---|
+| Azure | `gpu.driverVersion`, narrowed per pool by `gpu.driverVersionOverrides` |
+| AWS | `gpu.cudaDriverMajor` — branch only; the AMI decides the rest |
+
+Azure GPU nodes are provisioned with **no baked driver** (`AKSNodeClass
+spec.gpu.mode: None`) and the gpu-operator installs the version each pool
+declares, so the pool's own declaration is the driver fact. Taking it from the
+karpenter-azure pin instead names the provider's compiled-in constant, which no
+node receives — a confident wrong answer at exit 0, and blind to per-pool
+overrides.
+
+The only hand-maintained rows left are GPU model → compute capability and NVML
+brands, which nothing upstream publishes machine-readably. A model missing from
+that table refuses the pool **by name**, never skips it.
+
+`--driver-crs <path>` additionally refuses a pool whose declared version no
+`NVIDIADriver` CR installs — the failure that strands a pool with GPU pods
+pending forever. Declaring a version and installing it are two values in two
+repos with nothing enforcing the pair.
 
 ## What it does not tell you
 
@@ -136,13 +155,21 @@ the digests actually verdicted, ready to paste into a PR or an issue body.
 ```bash
 cd tests
 python3 -m unittest test_cuda_compat test_dsl_parity   # hermetic
+python3 -m unittest test_resolve_targets               # needs pyyaml
 python3 -m unittest test_registry_contract             # network: fixtures vs registry
 ./mutation_check.py                                    # proves the suite bites
+./mutation_check.py --list                             # the catalogue, and the count
 ```
 
-`mutation_check.py` seeds 14 defects — the AND/OR inversion among them — and
-requires each to turn the suite red. A surviving mutation is a reported hole, not
-a pass.
+`mutation_check.py` seeds a defect at a time and requires each to turn the suite
+red. It covers both ways of being confidently wrong: the **evaluator** judging an
+image against a target incorrectly (the AND/OR inversion among them), and the
+**resolver** judging it against the wrong target — a fully correct verdict about
+a machine that does not exist reads exactly like a correct one. A surviving
+mutation is a reported hole, not a pass.
+
+The count lives in `--list`, not here: a number in prose is one more thing that
+goes stale while reading as reviewed.
 
 ## Constraints this file must keep
 

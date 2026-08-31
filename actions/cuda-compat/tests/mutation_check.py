@@ -1,24 +1,41 @@
 #!/usr/bin/env python3
-"""Mutation check: prove the suite fails when the evaluator is wrong.
+"""Mutation check: prove the suite fails when the code is wrong.
 
-A green suite only means something if a broken evaluator turns it red. This
-applies each defect below to a copy of cuda-compat.py, runs the offline suite
-against that copy, and requires the suite to FAIL. A mutation that survives is
-reported as a hole in the tests, and this script exits non-zero.
+A green suite only means something if broken code turns it red. This applies each
+defect below to a copy of the script it targets, runs that script's suite against
+the copy, and requires the suite to FAIL. A mutation that survives is reported as
+a hole in the tests, and this script exits non-zero.
+
+Two targets, because there are two ways to be confidently wrong:
+
+  evaluator (cuda-compat.py)     — judging an image against a target incorrectly.
+                                   The first two mutations are the highest
+                                   consequence available: inverting the OR/AND
+                                   separators leaves the evaluator running
+                                   normally while making it wrong about every
+                                   image with a driver-branch allowance.
+  resolver  (resolve-targets.py) — judging it against the WRONG TARGET. A fully
+                                   correct verdict about a machine that does not
+                                   exist reads exactly like a correct one.
 
 Every mutation is a defect that would ship a wrong answer to a user rather than
-an error, which is the only kind worth seeding. The first two are the highest
-consequence available: inverting the OR/AND separators leaves the evaluator
-running normally while making it wrong about every image with a driver-branch
-allowance in its requirement string.
+an error, which is the only kind worth seeding.
 
   ./mutation_check.py            run them all
   ./mutation_check.py --list     show the catalogue
 """
 import argparse, os, shutil, subprocess, sys, tempfile
 
+try:
+    import yaml  # noqa: F401  (availability probe, not a use)
+    HAVE_YAML = True
+except ImportError:
+    HAVE_YAML = False
+
 HERE = os.path.dirname(os.path.abspath(__file__))
-SCRIPT = os.path.join(os.path.dirname(HERE), "cuda-compat.py")
+ACTION = os.path.dirname(HERE)
+SCRIPT = os.path.join(ACTION, "cuda-compat.py")
+RESOLVER = os.path.join(ACTION, "resolve-targets.py")
 
 # (name, why it matters, needle, replacement)
 MUTATIONS = [
@@ -122,14 +139,75 @@ MUTATIONS = [
      "if False:"),
 ]
 
+# Defects in how a pool's target is DERIVED. These matter as much as the
+# evaluator's: a target class names the driver an image is judged against, so a
+# wrong one produces a fully-reasoned verdict about a machine that does not
+# exist. Deriving the driver from the karpenter-azure pin was exactly this
+# defect, shipped — hence the first two.
+RESOLVER_MUTATIONS = [
+    ("per-pool-override-ignored",
+     "every pool judged at the cluster default, so a pool running another driver "
+     "is verdicted against one it does not have",
+     'return {pool: str(overrides.get(pool, base)) for pool in pools}, None',
+     'return {pool: str(base) for pool in pools}, None'),
 
-def run_suite(script_path):
-    """-> (passed, tail of output). The suite is pointed at a mutant via MUTANT_PATH."""
-    env = dict(os.environ, MUTANT_PATH=script_path)
+    ("driver-major-accepted-as-a-version",
+     "\"580\" accepted as a driver fact, though it installs nothing and names no image",
+     r'DRIVER_VERSION = re.compile(r"^\d{3,4}\.\d+\.\d+$")',
+     r'DRIVER_VERSION = re.compile(r"^\d{3,4}")'),
+
+    ("chart-default-sku-reintroduced",
+     "the chart's default copied back in — the drift that silently moved every "
+     "inheriting pool's compute capability when it changed upstream",
+     '        sku_names = gpu.get("skuGpuNames")',
+     '        sku_names = gpu.get("skuGpuNames") or ["A10"]'),
+
+    ("grid-model-modelled-anyway",
+     "a pool invented for a GPU whose render fails, judged against a driver it "
+     "could never receive",
+     '            grid = [s for s in sku_names if gpus[s].get("driver_family") == "grid"]',
+     '            grid = []'),
+
+    ("cloud-assumed-azure",
+     "an AWS pool read as Azure, so the AMI's driver is replaced by a declaration "
+     "that does nothing there",
+     '        azure = has_addon(config, configs, "karpenter-azure")',
+     '        azure = True'),
+
+    ("impossible-silicon-pair-allowed",
+     "a driver older than the GPU blessed, though no such driver has seen that silicon",
+     '                if int(branch) < int(spec["min_driver_branch"]):',
+     '                if False:'),
+
+    ("stranded-pool-not-refused",
+     "a declared version no NVIDIADriver CR installs passed as checked — the pool "
+     "whose nodes never receive a driver at all",
+     '            if crs is not None and azure and driver not in crs:',
+     '            if False:'),
+]
+
+
+def run_suite(env_var, script_path, modules):
+    """-> (passed, tail of output). The suite is pointed at a mutant via env_var."""
+    env = dict(os.environ, **{env_var: script_path})
     proc = subprocess.run(
-        [sys.executable, "-m", "unittest", "test_cuda_compat", "test_dsl_parity", "-v"],
+        [sys.executable, "-m", "unittest", *modules, "-v"],
         cwd=HERE, env=env, capture_output=True, text=True)
     return proc.returncode == 0, (proc.stderr or proc.stdout)
+
+
+# (label, script, env var, test modules, mutations, where mutants may be written)
+#
+# Resolver mutants must sit beside the original: resolve-targets.py locates
+# tables/ relative to its own path, so a copy in a tmpdir would fail to import
+# for a reason that has nothing to do with the seeded defect — and a mutation
+# "caught" by its own plumbing proves nothing.
+TARGETS = [
+    ("evaluator", SCRIPT, "MUTANT_PATH",
+     ["test_cuda_compat", "test_dsl_parity"], MUTATIONS, None),
+    ("resolver", RESOLVER, "RESOLVER_MUTANT_PATH",
+     ["test_resolve_targets"], RESOLVER_MUTATIONS, ACTION),
+]
 
 
 def main():
@@ -138,48 +216,67 @@ def main():
     args = ap.parse_args()
 
     if args.list:
-        for name, why, _, _ in MUTATIONS:
-            print(f"  {name:<34} {why}")
+        for label, _, _, _, mutations, _ in TARGETS:
+            print(f"  {label}:")
+            for name, why, _, _ in mutations:
+                print(f"    {name:<34} {why}")
         return 0
-
-    with open(SCRIPT) as f:
-        original = f.read()
-
-    print("==> baseline: the unmutated suite must pass")
-    ok, out = run_suite(SCRIPT)
-    if not ok:
-        print(out[-3000:])
-        print("BASELINE FAILED — fix the suite before trusting any mutation result.")
-        return 1
-    print("    baseline green\n")
 
     survivors, applied = [], 0
     tmpdir = tempfile.mkdtemp(prefix="cuda-compat-mutants-")
+    written = []
     try:
-        for name, why, needle, replacement in MUTATIONS:
-            if needle not in original:
-                print(f"[STALE ] {name}: needle no longer present in cuda-compat.py")
-                survivors.append((name, "stale mutation — the code it targeted moved"))
-                continue
-            if original.count(needle) != 1:
-                print(f"[STALE ] {name}: needle matches {original.count(needle)} places, need exactly 1")
-                survivors.append((name, "ambiguous mutation needle"))
-                continue
-            mutant_path = os.path.join(tmpdir, f"{name}.py")
-            with open(mutant_path, "w") as f:
-                f.write(original.replace(needle, replacement))
-            applied += 1
-            ok, out = run_suite(mutant_path)
-            if ok:
-                print(f"[SURVIVED] {name} — {why}")
-                survivors.append((name, why))
-            else:
-                failed = [ln for ln in out.splitlines() if ln.startswith(("FAIL:", "ERROR:"))]
-                print(f"[caught ] {name:<34} {len(failed)} test(s) red")
+        for label, script, env_var, modules, mutations, mutant_dir in TARGETS:
+            if label == "resolver" and not HAVE_YAML:
+                # Every resolver test would skip, the suite would pass, and all
+                # seven mutations would "survive" — or worse, be waved through as
+                # a known-flaky. Neither reading is true, so refuse instead.
+                print("==> resolver: PyYAML absent, so its tests would all skip and this "
+                      "check would measure nothing. pip install pyyaml and re-run.")
+                return 1
+            print(f"==> {label}: baseline must pass")
+            ok, out = run_suite(env_var, script, modules)
+            if not ok:
+                print(out[-3000:])
+                print("BASELINE FAILED — fix the suite before trusting any mutation result.")
+                return 1
+            print("    baseline green")
+
+            with open(script) as f:
+                original = f.read()
+            for name, why, needle, replacement in mutations:
+                if needle not in original:
+                    print(f"[STALE ] {name}: needle no longer present in {os.path.basename(script)}")
+                    survivors.append((name, "stale mutation — the code it targeted moved"))
+                    continue
+                if original.count(needle) != 1:
+                    print(f"[STALE ] {name}: needle matches {original.count(needle)} places, "
+                          f"need exactly 1")
+                    survivors.append((name, "ambiguous mutation needle"))
+                    continue
+                target_dir = mutant_dir or tmpdir
+                mutant_path = os.path.join(target_dir, f".mutant-{name}.py")
+                with open(mutant_path, "w") as f:
+                    f.write(original.replace(needle, replacement))
+                written.append(mutant_path)
+                applied += 1
+                ok, out = run_suite(env_var, mutant_path, modules)
+                if ok:
+                    print(f"[SURVIVED] {name} — {why}")
+                    survivors.append((name, why))
+                else:
+                    failed = [ln for ln in out.splitlines() if ln.startswith(("FAIL:", "ERROR:"))]
+                    print(f"[caught ] {name:<34} {len(failed)} test(s) red")
+            print()
     finally:
+        for path in written:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
         shutil.rmtree(tmpdir, ignore_errors=True)
 
-    print(f"\n{applied - len(survivors)}/{applied} mutations caught")
+    print(f"{applied - len(survivors)}/{applied} mutations caught")
     if survivors:
         print("\nSURVIVING MUTATIONS — the suite cannot tell these defects from correct code:")
         for name, why in survivors:

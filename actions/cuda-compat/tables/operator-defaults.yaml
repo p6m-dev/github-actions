@@ -16,7 +16,9 @@ charts:
   ghcr.io/defilantech/charts/llmkube:
     source_repo: defilantech/LLMKube
     # The chart's OCI config blob states appVersion exactly; this is how it maps
-    # to a source tag. Verified 2026-08-25: chart 0.9.20 -> appVersion 0.9.20.
+    # to a source tag. Resolved live on every run — no version is recorded here,
+    # because a recorded one would describe whichever build was current the day
+    # someone wrote it down.
     tag_format: "v{appVersion}"
     source_dir: internal/controller
     file_pattern: "runtime_*.go"
@@ -33,9 +35,8 @@ charts:
     # Where a values override would land, so an override and a built-in default
     # can be told apart in the report.
     override_path: runtimeImages
-    reviewed: "2026-08-25"
     note: >-
-      Verified at v0.9.20: runtime_vllm.go pins vllm/vllm-openai:v0.25.1,
-      runtime_sglang.go pins lmsysorg/sglang:v0.5.15.post1-cu129, and
-      runtime_llamacpp.go pins ghcr.io/ggml-org/llama.cpp:server-cuda-b10068 for
-      CUDA plus ROCm and Vulkan variants for other accelerators.
+      One runtime_*.go per backend, each pinning its default image as a string
+      constant. The image set itself is deliberately NOT recorded here: it is
+      what the run resolves, and a copy would be a second answer to the same
+      question that nothing keeps true.

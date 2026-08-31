@@ -33,10 +33,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      # PyYAML is for the CI-side resolver only. It must never become a
+      # dependency of cuda-compat.py, which stays runnable with bare python3 —
+      # the "Offline suite" step below runs before anything imports it, and the
+      # credential-free/stdlib-only assertions in test_cuda_compat enforce it.
+      # It is installed here rather than later because the mutation check covers
+      # the resolver too, and without PyYAML those tests would all skip, the
+      # suite would pass, and every resolver mutation would read as surviving.
+      - name: Install the resolver's dependency
+        run: pip install "pyyaml==6.0.3"
+
       - name: Offline suite (hermetic — logic only)
         run: python3 -m unittest test_cuda_compat test_dsl_parity -v
 
-      - name: Mutation check (the suite must fail when the evaluator is wrong)
+      - name: Mutation check (the suite must fail when the code is wrong)
         run: ./mutation_check.py
 
       # Digest-pinned, so this cannot flake on a tag move — only on the registry
@@ -44,22 +54,22 @@ jobs:
       - name: Registry contract (fixtures still match the registry)
         run: python3 -m unittest test_registry_contract -v
 
-      # PyYAML is for the CI-side resolver only. It must never become a
-      # dependency of cuda-compat.py, which stays runnable with bare python3.
       - name: Targets resolver
-        run: |
-          pip install "pyyaml==6.0.3"
-          python3 -m unittest test_resolve_targets -v
+        run: python3 -m unittest test_resolve_targets -v
 
       - name: End-to-end smoke through the action's own entrypoint
         working-directory: actions/cuda-compat
         run: |
           set -euo pipefail
-          # The estate's real case, asserted end to end: llmkube's stock default
-          # runtime image is COMPATIBLE on the declared-550 T4 pools via forward
-          # compatibility, and refused on a driver branch it does not enumerate.
-          # If these two ever disagree with the unit suite, the difference is in
-          # the fetch path, which the unit suite stubs.
+          # Both basis kinds and the refusal, end to end over a real image. The
+          # targets exercise the paths; they are NOT a copy of the estate, which
+          # is resolved per run and belongs in that run's output rather than
+          # pinned in a test that would quietly go on describing a cluster we no
+          # longer have. If these disagree with the unit suite, the difference is
+          # in the fetch path, which the unit suite stubs.
+          #
+          # Same image, two drivers, two bases: the distinction the whole tool
+          # turns on, and the one a stale driver fact silently erases.
           python3 cuda-compat.py vllm/vllm-openai:v0.25.1 \
             --target 't4=550.144.03/7.5/amd64/Tesla,Nvidia' --json > ok.json
           python3 -c "
@@ -67,6 +77,16 @@ jobs:
           assert r['verdict'] == 'COMPATIBLE', r['verdict']
           assert 'forward compatibility' in r['results'][0]['basis']
           print('COMPATIBLE via forward compat, as expected')
+          "
+
+          python3 cuda-compat.py vllm/vllm-openai:v0.25.1 \
+            --target 't4=580.126.20/7.5/amd64/Tesla,Nvidia' --json > native.json
+          python3 -c "
+          import json; r = json.load(open('native.json'))
+          assert r['verdict'] == 'COMPATIBLE', r['verdict']
+          basis = r['results'][0]['basis']
+          assert 'forward compatibility' not in basis, basis
+          print('COMPATIBLE natively on a newer branch, as expected')
           "
 
           set +e
