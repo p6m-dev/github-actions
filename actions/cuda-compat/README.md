@@ -101,10 +101,12 @@ The only hand-maintained rows left are GPU model → compute capability and NVML
 brands, which nothing upstream publishes machine-readably. A model missing from
 that table refuses the pool **by name**, never skips it.
 
-`--driver-crs <path>` additionally refuses a pool whose declared version no
+`--driver-crs <path>` (repeatable — the CRs live in each cluster org's own
+`.platform` repo) additionally refuses a pool whose declared version no
 `NVIDIADriver` CR installs — the failure that strands a pool with GPU pods
 pending forever. Declaring a version and installing it are two values in two
-repos with nothing enforcing the pair.
+repos with nothing enforcing the pair. Omitting it leaves `cr_installed` null
+rather than true, so an unrun guard never reads as a passed one.
 
 ## What it does not tell you
 

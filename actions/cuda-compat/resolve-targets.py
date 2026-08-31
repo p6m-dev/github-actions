@@ -186,16 +186,23 @@ def azure_pool_drivers(gpu):
     return {pool: str(overrides.get(pool, base)) for pool in pools}, None
 
 
-def nvidia_driver_cr_versions(root):
-    """Every version an NVIDIADriver CR installs, across the Installations under root.
+def nvidia_driver_cr_versions(roots):
+    """Every version an NVIDIADriver CR installs, across the Installations under roots.
 
     Set-based on purpose: an Installation names the clusters it targets, and a
     VersionConfig does not, so this cannot be matched per cluster from here. It
     still catches the failure that strands a pool — a declared version that no CR
     installs, whose nodes come up and never receive a driver.
+
+    Takes several roots because the CRs live in each cluster org's own .platform
+    repo, and GPU pools will not stay in one of them.
     """
+    if isinstance(roots, str):
+        roots = [roots]
     versions = {}
-    for path in sorted(glob.glob(os.path.join(root, "**", "*.yaml"), recursive=True)):
+    paths = [(root, p) for root in roots
+             for p in sorted(glob.glob(os.path.join(root, "**", "*.yaml"), recursive=True))]
+    for root, path in paths:
         try:
             with open(path) as f:
                 docs = list(yaml.safe_load_all(f))
@@ -351,10 +358,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--platform-versions", required=True,
                     help="path to a checkout of p6m-run/platform-versions")
-    ap.add_argument("--driver-crs", metavar="PATH",
+    ap.add_argument("--driver-crs", metavar="PATH", action="append",
                     help="path to a checkout carrying the NVIDIADriver Installations "
-                         "(e.g. ybor-playground/.platform). When given, a pool declaring a "
-                         "version no CR installs is refused instead of resolved.")
+                         "(e.g. ybor-playground/.platform). Repeatable. When given, a pool "
+                         "declaring a version no CR installs is refused instead of resolved.")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--github-output", action="store_true",
                     help="append targets/unresolved to $GITHUB_OUTPUT")
@@ -382,6 +389,9 @@ def main():
             f.write("targets<<CC_EOF\n" + "\n".join(r["target"] for r in resolved) + "\nCC_EOF\n")
             f.write(f"resolved-count={len(resolved)}\n")
             f.write(f"unresolved-count={len(unresolved)}\n")
+            # So a consumer can say "not checked" out loud rather than let the
+            # guard's absence read as the guard having passed.
+            f.write(f"cr-checked={'true' if args.driver_crs else 'false'}\n")
             f.write("unresolved<<CC_EOF\n"
                     + "\n".join(f"- **{u['config']}** (`{u['path']}`): {u['reason']}"
                                 for u in unresolved) + "\nCC_EOF\n")

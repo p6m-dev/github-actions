@@ -285,6 +285,19 @@ class TestResolver(unittest.TestCase):
         self.assertEqual(unresolved, [])
         self.assertTrue(resolved[0]["cr_installed"])
 
+    def test_crs_are_unioned_across_several_roots(self):
+        """The CRs live in each cluster org's own .platform repo, and a pool
+        paired from the second one must not read as stranded."""
+        write_config(self.root, "spread", driver_version="570.211.01")
+        first, second = tempfile.TemporaryDirectory(), tempfile.TemporaryDirectory()
+        self.addCleanup(first.cleanup)
+        self.addCleanup(second.cleanup)
+        write_driver_crs(first.name, ["580.126.20"])
+        write_driver_crs(second.name, ["570.211.01"])
+        resolved, unresolved = self.resolve(driver_crs=[first.name, second.name])
+        self.assertEqual(unresolved, [])
+        self.assertTrue(resolved[0]["cr_installed"])
+
     def test_cr_check_is_not_run_when_no_crs_are_supplied(self):
         """Absent input must not read as a passing check."""
         write_config(self.root, "unchecked", driver_version="580.126.20")
