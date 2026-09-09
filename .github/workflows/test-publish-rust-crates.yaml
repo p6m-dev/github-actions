@@ -107,10 +107,23 @@ jobs:
           git push
           git push --tags
 
+  # Publish only after the version bump has landed. The two jobs used to be
+  # siblings, and a run whose upload succeeded but whose bump failed left the
+  # workspace at a version the registry already held; every later merge then
+  # skipped every crate as already published (cargo workspaces publish
+  # --publish-as-is treats that as success), tagged the commit and committed
+  # "Release version N+1" anyway — a green release that shipped nothing, with a
+  # tag pointing at code that is not in any registry. Ordering the upload behind
+  # the bump keeps the invariant that the source is never sitting at a
+  # published version: if the bump fails nothing is uploaded and the next merge
+  # publishes the same version; if the upload fails the run is red and the
+  # registry simply lacks a version the source has already moved past. The
+  # upload still publishes the run's own commit (checkout of github.sha), which
+  # is the version the bump job tagged.
   publish-crates:
     if: ${{ inputs.publish }}
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, bump-version]
 
     steps:
       - uses: actions/checkout@v4
