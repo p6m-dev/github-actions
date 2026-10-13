@@ -6,6 +6,13 @@ on:
       REACT_APP_ENV:
         required: false
         type: string
+      node-version:
+        required: false
+        type: string
+        default: "20"
+        description: |
+          Node.js version to build with, passed to actions/setup-node.
+          Defaults to 20, the version this branch has always used.
     secrets:
       ARTIFACTORY_TOKEN:
         required: true
@@ -38,10 +45,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Setup NodeJS 20
+      - name: Setup NodeJS ${{ inputs.node-version }}
         uses: actions/setup-node@v1
         with:
-          node-version: 20
+          node-version: ${{ inputs.node-version }}
 
       - name: Install pnpm
         run: npm install -g pnpm
