@@ -24,6 +24,11 @@ on:
       ARTIFACTORY_REGISTRY:
         required: false
         type: string
+      NODE_VERSION:
+        description: "Node.js version passed to actions/setup-node (e.g. 22, 22.23.4, 24)"
+        type: string
+        required: false
+        default: "22"
     outputs:
       tag_name:
         description: "Git Tag Name"
@@ -65,10 +70,11 @@ jobs:
           username: ${{ secrets.ARTIFACTORY_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
       
-      - name: Setup NodeJS
-        uses: actions/setup-node@v3
+      - name: Setup NodeJS ${{ inputs.NODE_VERSION }}
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ inputs.NODE_VERSION }}
+          check-latest: true
       
       - name: Install pnpm
         run: |

@@ -81,6 +81,12 @@ on:
         default: "false"
         type: string
 
+      NODE_VERSION:
+        description: "Node.js version passed to actions/setup-node (e.g. 22, 22.23.4, 24)"
+        type: string
+        required: false
+        default: "22"
+
 env:
   ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
   ARTIFACTORY_IDENTITY_TOKEN: ${{ secrets.ARTIFACTORY_IDENTITY_TOKEN }}
@@ -111,10 +117,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Setup NodeJS 16
-        uses: actions/setup-node@v1
+      - name: Setup NodeJS ${{ inputs.NODE_VERSION }}
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: ${{ inputs.NODE_VERSION }}
+          check-latest: true
 
       - name: Install pnpm
         run: |
@@ -196,10 +203,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Setup NodeJS 16
-        uses: actions/setup-node@v1
+      - name: Setup NodeJS ${{ inputs.NODE_VERSION }}
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: ${{ inputs.NODE_VERSION }}
+          check-latest: true
 
       - name: Install pnpm
         run: |
@@ -304,10 +312,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Setup NodeJS 16
-        uses: actions/setup-node@v1
+      - name: Setup NodeJS ${{ inputs.NODE_VERSION }}
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: ${{ inputs.NODE_VERSION }}
+          check-latest: true
 
       - name: Install pnpm
         run: |
