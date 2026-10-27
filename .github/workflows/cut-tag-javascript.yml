@@ -92,9 +92,9 @@ jobs:
           path: |
             ${{ steps.pnpm-cache-dir-path.outputs.dir }}
             **\node_modules
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-node${{ inputs.NODE_VERSION }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-
+            ${{ runner.os }}-node${{ inputs.NODE_VERSION }}-pnpm-
 
       - name: Configure Artifactory registry auth
         run: |
