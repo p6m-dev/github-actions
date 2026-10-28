@@ -39,6 +39,11 @@ on:
       AWS_REGION:
         required: false
         type: string
+      NODE_VERSION:
+        description: "Node.js version passed to actions/setup-node (e.g. 22, 22.23.4, 24)"
+        type: string
+        required: false
+        default: "22"
 
 env:
   ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -69,10 +74,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup NodeJS 18
-        uses: actions/setup-node@v1
+      - name: Setup NodeJS ${{ inputs.NODE_VERSION }}
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ inputs.NODE_VERSION }}
+          check-latest: true
 
       - name: Install pnpm
         run: |
@@ -90,9 +96,9 @@ jobs:
           path: |
             ${{ steps.pnpm-cache-dir-path.outputs.dir }}
             **\node_modules
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-node${{ inputs.NODE_VERSION }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-
+            ${{ runner.os }}-node${{ inputs.NODE_VERSION }}-pnpm-
 
       - name: Install dependencies
         if: steps.pnpm-cache.outputs.cache-hit != 'true'
