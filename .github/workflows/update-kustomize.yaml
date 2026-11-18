@@ -32,6 +32,8 @@ jobs:
           ref: "main"
 
       - name: Update image digest for Managed Clusters
+        env:
+          SOURCE_REF: ${{ github.event.client_payload.ref }}
         run: |
           normalize() {
             echo "$1" | tr '[:upper:]' '[:lower:]' | tr '._' '-' | sed -E 's/[^a-z0-9-]+/-/g' | sed -E 's/^-+|-+$//g'
@@ -66,12 +68,23 @@ jobs:
             RESOURCE_BASE_PATH=".platform/kubernetes"
           fi
 
+          # Pin the remote base to the app commit that built this image, so a later merge to the
+          # app repo can't change what Argo applies. Empty => unpinned (callers that send no ref).
+          REF_SUFFIX=""
+          if [ -n "$SOURCE_REF" ]; then
+            if ! [[ "$SOURCE_REF" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::client_payload.ref must be a full 40-character commit SHA"
+              exit 1
+            fi
+            REF_SUFFIX="?ref=${SOURCE_REF}"
+          fi
+
           cat > kustomization.yaml << EndOfMessage
           apiVersion: kustomize.config.k8s.io/v1beta1
           kind: Kustomization
 
           resources:
-            - https://github.com/${RESOURCE_BASE}/${RESOURCE_BASE_PATH}/${{ github.event.client_payload.environment_dir }}
+            - https://github.com/${RESOURCE_BASE}/${RESOURCE_BASE_PATH}/${{ github.event.client_payload.environment_dir }}${REF_SUFFIX}
           EndOfMessage
 
           if [ -z "${{ github.event.client_payload.image_name }}" ]; then
